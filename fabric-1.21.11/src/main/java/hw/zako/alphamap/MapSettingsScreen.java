@@ -74,14 +74,63 @@ public final class MapSettingsScreen extends Screen {
             }
         });
 
+        addRenderableWidget(new Slider(x, y + GAP * 3, scaleToSlider(settings.markerScale())) {
+            @Override
+            protected void updateMessage() {
+                setMessage(Component.translatable("alphamap.settings.markers",
+                        Math.round(sliderToScale(value) * 100) + "%"));
+            }
+
+            @Override
+            protected void applyValue() {
+                settings.markerScale(sliderToScale(value));
+                settings.clampAndSave();
+            }
+        });
+
+        addRenderableWidget(new Slider(x, y + GAP * 4, scaleToSlider(settings.worldMarkerScale())) {
+            @Override
+            protected void updateMessage() {
+                setMessage(Component.translatable("alphamap.settings.markers.world",
+                        Math.round(sliderToScale(value) * 100) + "%"));
+            }
+
+            @Override
+            protected void applyValue() {
+                settings.worldMarkerScale(sliderToScale(value));
+                settings.clampAndSave();
+            }
+        });
+
+        addRenderableWidget(Button.builder(beds(settings), button -> {
+            settings.worldBeds(!settings.worldBeds());
+            settings.clampAndSave();
+            button.setMessage(beds(settings));
+        }).bounds(x, y + GAP * 5, WIDTH, HEIGHT).build());
+
         addRenderableWidget(Button.builder(Component.translatable("gui.done"), button -> onClose())
-                .bounds(x, y + GAP * 4, WIDTH, HEIGHT)
+                .bounds(x, y + GAP * 7, WIDTH, HEIGHT)
                 .build());
     }
 
     @Override
     public void onClose() {
         minecraft.setScreen(parent);
+    }
+
+    private static Component beds(MapSettings settings) {
+        return Component.translatable(settings.worldBeds()
+                ? "alphamap.settings.beds.on"
+                : "alphamap.settings.beds.off");
+    }
+
+    private static double scaleToSlider(double scale) {
+        return (Math.clamp(scale, MapSettings.MIN_SCALE, MapSettings.MAX_SCALE) - MapSettings.MIN_SCALE)
+                / (MapSettings.MAX_SCALE - MapSettings.MIN_SCALE);
+    }
+
+    private static double sliderToScale(double slider) {
+        return MapSettings.MIN_SCALE + slider * (MapSettings.MAX_SCALE - MapSettings.MIN_SCALE);
     }
 
     private static double labelZoomToSlider(double zoom) {

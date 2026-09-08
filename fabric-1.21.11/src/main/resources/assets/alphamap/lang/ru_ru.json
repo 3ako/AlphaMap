@@ -12,8 +12,17 @@
   "alphamap.settings.opacity": "Непрозрачность карты: %s",
   "alphamap.settings.grid": "Сетка координат: %s",
   "alphamap.settings.grid.off": "Сетка координат: выключена",
+  "alphamap.settings.markers": "Размер меток на карте: %s",
+  "alphamap.settings.markers.world": "Размер меток в мире: %s",
+  "alphamap.settings.beds.on": "Кровати в мире: показывать",
+  "alphamap.settings.beds.off": "Кровати в мире: скрыть",
   "alphamap.settings.labels": "Названия структур с приближения %s",
   "alphamap.settings.labels.never": "Названия структур: не показывать",
+
+  "alphamap.waypoint.title": "Метка",
+  "alphamap.waypoint.name": "Название",
+  "alphamap.waypoint.delete": "Удалить метку",
+  "alphamap.waypoint.distance": "%s м",
 
   "alphamap.marker.bed": "Кровать",
   "alphamap.marker.mineshaft": "Заброшенная шахта",

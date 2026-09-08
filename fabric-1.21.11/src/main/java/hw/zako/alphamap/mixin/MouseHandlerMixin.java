@@ -18,6 +18,11 @@ abstract class MouseHandlerMixin {
         callback.cancel();
     }
 
+    @Inject(method = "grabMouse", at = @At("HEAD"), cancellable = true)
+    private void alphamap$keepCursorFree(CallbackInfo callback) {
+        if (MapInput.cursorActive()) callback.cancel();
+    }
+
     @Inject(method = "turnPlayer", at = @At("HEAD"), cancellable = true)
     private void alphamap$holdCamera(double partialTick, CallbackInfo callback) {
         if (MapInput.cursorActive()) callback.cancel();

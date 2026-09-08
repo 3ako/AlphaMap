@@ -14,6 +14,9 @@ import java.nio.file.Path;
 @FieldDefaults(level = AccessLevel.PRIVATE)
 public final class MapSettings {
 
+    public static final double MIN_SCALE = 0.5;
+    public static final double MAX_SCALE = 3.0;
+
     private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
 
     @NonFinal
@@ -33,6 +36,15 @@ public final class MapSettings {
 
     @NonFinal
     double labelZoom = 2.0;
+
+    @NonFinal
+    boolean worldBeds = true;
+
+    @NonFinal
+    double markerScale = 1.0;
+
+    @NonFinal
+    double worldMarkerScale = 1.0;
 
     public static MapSettings get() {
         return loaded;
@@ -58,6 +70,8 @@ public final class MapSettings {
         gridOpacity = Math.clamp(gridOpacity, 0.0, 1.0);
         gridBlocks = Math.max(0, gridBlocks);
         labelZoom = Math.max(1.0, labelZoom);
+        markerScale = Math.clamp(markerScale, MIN_SCALE, MAX_SCALE);
+        worldMarkerScale = Math.clamp(worldMarkerScale, MIN_SCALE, MAX_SCALE);
         write(file(), this);
     }
 
@@ -71,6 +85,38 @@ public final class MapSettings {
 
     public double labelZoom() {
         return labelZoom;
+    }
+
+    public double markerScale() {
+        return markerScale;
+    }
+
+    public void markerScale(double value) {
+        markerScale = value;
+    }
+
+    public double worldMarkerScale() {
+        return worldMarkerScale;
+    }
+
+    public void worldMarkerScale(double value) {
+        worldMarkerScale = value;
+    }
+
+    public int markerPixels() {
+        return (int) Math.round(16 * markerScale);
+    }
+
+    public int worldMarkerPixels() {
+        return (int) Math.round(16 * worldMarkerScale);
+    }
+
+    public boolean worldBeds() {
+        return worldBeds;
+    }
+
+    public void worldBeds(boolean value) {
+        worldBeds = value;
     }
 
     public boolean grid() {

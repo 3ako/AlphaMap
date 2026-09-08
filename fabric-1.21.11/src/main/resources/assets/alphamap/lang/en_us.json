@@ -12,8 +12,17 @@
   "alphamap.settings.opacity": "Map opacity: %s",
   "alphamap.settings.grid": "Coordinate grid: %s",
   "alphamap.settings.grid.off": "Coordinate grid: off",
+  "alphamap.settings.markers": "Marker size on map: %s",
+  "alphamap.settings.markers.world": "Marker size in world: %s",
+  "alphamap.settings.beds.on": "Beds in world: shown",
+  "alphamap.settings.beds.off": "Beds in world: hidden",
   "alphamap.settings.labels": "Structure names from zoom %s",
   "alphamap.settings.labels.never": "Structure names: never",
+
+  "alphamap.waypoint.title": "Waypoint",
+  "alphamap.waypoint.name": "Name",
+  "alphamap.waypoint.delete": "Delete waypoint",
+  "alphamap.waypoint.distance": "%s m",
 
   "alphamap.marker.bed": "Bed",
   "alphamap.marker.mineshaft": "Abandoned Mineshaft",

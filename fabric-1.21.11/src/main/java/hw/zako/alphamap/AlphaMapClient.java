@@ -24,6 +24,15 @@ public final class AlphaMapClient implements ClientModInitializer {
 
     private static final Identifier OVERLAY = Identifier.fromNamespaceAndPath("alphamap", "map");
 
+    public static boolean pinned() {
+        return !MapSketch.isEmpty() || MapInput.engaged() || MapInput.tool() == MapTool.PENCIL;
+    }
+
+    public static boolean mapOpen() {
+        return OPEN_MAP.isDown() || pinned();
+    }
+    private static final Identifier WAYPOINTS = Identifier.fromNamespaceAndPath("alphamap", "waypoints");
+
     @Override
     public void onInitializeClient() {
         AtlasClient atlas = new AtlasClient();
@@ -36,11 +45,15 @@ public final class AlphaMapClient implements ClientModInitializer {
 
         KeyBindingHelper.registerKeyBinding(OPEN_MAP);
 
+        HudElementRegistry.attachElementBefore(VanillaHudElements.CHAT, WAYPOINTS, new WaypointOverlay(atlas, settings));
         HudElementRegistry.attachElementBefore(VanillaHudElements.CHAT, OVERLAY, new MapOverlay(atlas, settings));
 
+        ClientPlayConnectionEvents.JOIN.register((handler, sender, client) -> Waypoints.enter());
         ClientPlayConnectionEvents.DISCONNECT.register((handler, client) -> {
             atlas.reset();
             MapInput.reset(client);
+            MapSketch.clear();
+            Waypoints.leave();
         });
 
         ClientTickEvents.END_CLIENT_TICK.register(new ClientTickEvents.EndTick() {
@@ -54,11 +67,11 @@ public final class AlphaMapClient implements ClientModInitializer {
                     return;
                 }
 
-                boolean down = OPEN_MAP.isDown();
-                if (down && !wasDown) atlas.hello();
-                if (down) atlas.tick();
-                MapInput.update(client, down);
-                wasDown = down;
+                boolean open = mapOpen();
+                if (open && !wasDown) atlas.hello();
+                if (open) atlas.tick();
+                MapInput.update(client, open);
+                wasDown = open;
             }
         });
     }

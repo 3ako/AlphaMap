@@ -7,15 +7,23 @@ import net.minecraft.client.Minecraft;
 public class MapInput {
 
     private final double MIN_ZOOM = 1.0;
-    private final double MAX_ZOOM = 8.0;
+    private final double MAX_MAGNIFICATION = 2.0;
+    private final double ZOOM_CEILING = 32.0;
     private final double ZOOM_STEP = 1.25;
 
     private boolean cursor;
+    private boolean engaged;
     private double zoom = MIN_ZOOM;
 
     private boolean released;
 
-    private boolean dragging;
+    private MapTool tool = MapTool.PAN;
+
+    private boolean holding;
+    private boolean pressed;
+    private boolean letGo;
+    private double pointerX;
+    private double pointerY;
     private double dragX;
     private double dragY;
 
@@ -25,9 +33,14 @@ public class MapInput {
     private int viewLeft;
     private int viewTop;
     private int viewSide = 1;
+    private double viewPixels = 1;
 
     public boolean cursorActive() {
         return cursor;
+    }
+
+    public boolean engaged() {
+        return engaged;
     }
 
     public double zoom() {
@@ -42,14 +55,51 @@ public class MapInput {
         return focusY;
     }
 
-    public void viewport(int left, int top, int side) {
+    public MapTool tool() {
+        return tool;
+    }
+
+    public void tool(MapTool chosen) {
+        tool = chosen;
+    }
+
+    public boolean pressed() {
+        return pressed;
+    }
+
+    public boolean holding() {
+        return holding;
+    }
+
+    public boolean letGo() {
+        return letGo;
+    }
+
+    public double pointerX() {
+        return pointerX;
+    }
+
+    public double pointerY() {
+        return pointerY;
+    }
+
+    public void viewport(int left, int top, int side, double atlasPixels) {
         viewLeft = left;
         viewTop = top;
         viewSide = Math.max(1, side);
+        viewPixels = Math.max(1, atlasPixels);
+        zoom = Math.min(zoom, maxZoom());
+    }
+
+    public double maxZoom() {
+        return Math.clamp(viewPixels * MAX_MAGNIFICATION / viewSide, MIN_ZOOM, ZOOM_CEILING);
     }
 
     public void update(Minecraft client, boolean mapOpen) {
-        cursor = mapOpen && client.screen == null && client.options.keyUse.isDown();
+        boolean asked = client.options.keyUse.isDown() || tool == MapTool.PENCIL;
+        if (mapOpen && client.screen == null && asked) engaged = true;
+
+        cursor = mapOpen && client.screen == null && engaged;
 
         if (cursor) {
             if (client.mouseHandler.isMouseGrabbed()) client.mouseHandler.releaseMouse();
@@ -57,29 +107,34 @@ public class MapInput {
             return;
         }
 
-        if (!released) return;
+        if (!released || client.screen != null) return;
         released = false;
-        if (client.screen == null) client.mouseHandler.grabMouse();
+        client.mouseHandler.grabMouse();
     }
 
-    public void drag(Minecraft client) {
+    public void mouse(Minecraft client) {
+        pointerX = cursorX(client);
+        pointerY = cursorY(client);
+
         if (!cursor) {
-            dragging = false;
+            pressed = false;
+            letGo = holding;
+            holding = false;
             return;
         }
 
-        double x = cursorX(client);
-        double y = cursorY(client);
         boolean down = client.options.keyAttack.isDown();
+        pressed = down && !holding;
+        letGo = !down && holding;
 
-        if (down && dragging) {
-            focusX = clampFocus(focusX - (x - dragX) / (viewSide * zoom));
-            focusY = clampFocus(focusY - (y - dragY) / (viewSide * zoom));
+        if (down && !pressed && tool == MapTool.PAN) {
+            focusX = clampFocus(focusX - (pointerX - dragX) / (viewSide * zoom));
+            focusY = clampFocus(focusY - (pointerY - dragY) / (viewSide * zoom));
         }
 
-        dragging = down;
-        dragX = x;
-        dragY = y;
+        holding = down;
+        dragX = pointerX;
+        dragY = pointerY;
     }
 
     public double cursorX(Minecraft client) {
@@ -96,14 +151,18 @@ public class MapInput {
 
     public void reset(Minecraft client) {
         cursor = false;
+        engaged = false;
         if (released) {
             released = false;
             if (client.screen == null) client.mouseHandler.grabMouse();
         }
-        dragging = false;
+        holding = false;
+        pressed = false;
+        letGo = false;
         zoom = MIN_ZOOM;
         focusX = 0.5;
         focusY = 0.5;
+        tool = MapTool.PAN;
     }
 
     public void scroll(double delta) {
@@ -116,7 +175,7 @@ public class MapInput {
         double atX = atlasAt(focusX, cursorX, viewLeft);
         double atY = atlasAt(focusY, cursorY, viewTop);
 
-        zoom = Math.clamp(delta > 0 ? zoom * ZOOM_STEP : zoom / ZOOM_STEP, MIN_ZOOM, MAX_ZOOM);
+        zoom = Math.clamp(delta > 0 ? zoom * ZOOM_STEP : zoom / ZOOM_STEP, MIN_ZOOM, maxZoom());
 
         focusX = clampFocus(atX - (cursorX - viewLeft - viewSide / 2.0) / (viewSide * zoom));
         focusY = clampFocus(atY - (cursorY - viewTop - viewSide / 2.0) / (viewSide * zoom));
