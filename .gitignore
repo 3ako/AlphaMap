@@ -1,0 +1,17 @@
+# Gradle
+.gradle/
+build/
+
+# Dev-клиент Fabric: сюда же попадают логи с путями и настройками машины
+run/
+
+# IDE
+.idea/
+*.iml
+*.ipr
+*.iws
+.vscode/
+
+# ОС
+.DS_Store
+Thumbs.db

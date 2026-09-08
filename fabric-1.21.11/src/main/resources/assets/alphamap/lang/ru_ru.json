@@ -1,0 +1,31 @@
+{
+  "key.category.alphamap.map": "AlphaMap",
+  "key.alphamap.open": "Показать карту острова (удержание)",
+  "alphamap.loading": "Карта острова загружается…",
+  "alphamap.no_server": "На этом сервере карты острова нет",
+  "alphamap.version": "Версии протокола карты не совпали",
+  "alphamap.unavailable.no_map": "Сервер сейчас не может отдать карту",
+  "alphamap.unavailable.not_ready": "Карта острова ещё собирается…",
+  "alphamap.unavailable.too_fast": "Слишком частые запросы, ждём…",
+
+  "alphamap.settings.title": "Настройки карты острова",
+  "alphamap.settings.opacity": "Непрозрачность карты: %s",
+  "alphamap.settings.grid": "Сетка координат: %s",
+  "alphamap.settings.grid.off": "Сетка координат: выключена",
+  "alphamap.settings.labels": "Названия структур с приближения %s",
+  "alphamap.settings.labels.never": "Названия структур: не показывать",
+
+  "alphamap.marker.mineshaft": "Заброшенная шахта",
+  "alphamap.marker.stronghold": "Крепость Энда",
+  "alphamap.marker.copper": "Медный данж",
+  "alphamap.marker.bastion": "Бастион",
+  "alphamap.marker.airland": "Парящий остров",
+  "alphamap.marker.beacon": "Маяк",
+  "alphamap.marker.mill": "Мельница",
+  "alphamap.marker.quarry_sulfur": "Серный карьер",
+  "alphamap.marker.quarry_ore": "Рудный карьер",
+  "alphamap.marker.promzone": "Промзона",
+  "alphamap.marker.village": "Деревня",
+  "alphamap.marker.cave_evil": "Злая пещера",
+  "alphamap.marker.cave_good": "Добрая пещера"
+}
