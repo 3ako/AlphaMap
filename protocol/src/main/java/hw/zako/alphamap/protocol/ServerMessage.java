@@ -27,7 +27,7 @@ public sealed interface ServerMessage {
     record Markers(List<Marker> markers) implements ServerMessage {
     }
 
-    record Marker(int x, int z, String icon) {
+    record Marker(int x, int z, String icon, String label) {
     }
 
     enum Reason {
@@ -91,7 +91,11 @@ public sealed interface ServerMessage {
             int z = in.getInt();
             byte[] icon = new byte[in.get() & 0xFF];
             in.get(icon);
-            markers.add(new Marker(x, z, new String(icon, StandardCharsets.UTF_8)));
+            byte[] label = new byte[in.get() & 0xFF];
+            in.get(label);
+            markers.add(new Marker(x, z,
+                    new String(icon, StandardCharsets.UTF_8),
+                    new String(label, StandardCharsets.UTF_8)));
         }
         return new Markers(List.copyOf(markers));
     }

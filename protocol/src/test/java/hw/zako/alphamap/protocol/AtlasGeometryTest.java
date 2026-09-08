@@ -6,8 +6,6 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-/// Геометрия боевых дефолтов сервера: остров радиусом 1598 блоков, сетка 7×7 по 256 пикселей,
-/// два блока на пиксель.
 class AtlasGeometryTest {
 
     private static final AtlasGeometry ATLAS = new AtlasGeometry(1, -1792, -1792, 2, 256, 7, 1598);

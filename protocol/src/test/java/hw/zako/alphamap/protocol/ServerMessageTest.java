@@ -12,9 +12,6 @@ import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-/// Байты здесь собираются ровно так, как их пишет `MapAtlasChannel` на сервере. Если формат
-/// разъедется, разъедется и этот тест — больше сверять его не с чем, сервер и мод живут в разных
-/// репозиториях.
 class ServerMessageTest {
 
     private static final int TILES_PER_SIDE = 7;
@@ -85,8 +82,25 @@ class ServerMessageTest {
                 ServerMessage.parse(markers(new String[]{"mineshaft", "quarry_ore"})));
 
         assertEquals(2, markers.markers().size());
-        assertEquals(new ServerMessage.Marker(-1000, 500, "mineshaft"), markers.markers().get(0));
+        assertEquals(new ServerMessage.Marker(-1000, 500, "mineshaft", ""), markers.markers().get(0));
         assertEquals("quarry_ore", markers.markers().get(1).icon());
+    }
+
+    @Test
+    void readsAMarkerWithItsOwnName() {
+        byte[] icon = "bed".getBytes(StandardCharsets.UTF_8);
+        byte[] label = "База".getBytes(StandardCharsets.UTF_8);
+        assertEquals(8, label.length);
+
+        ByteBuffer out = ByteBuffer.allocate(1 + 2 + 4 + 4 + 1 + icon.length + 1 + label.length);
+        out.put((byte) ServerMessage.MARKERS).putShort((short) 1)
+                .putInt(10).putInt(20)
+                .put((byte) icon.length).put(icon)
+                .put((byte) label.length).put(label);
+
+        ServerMessage.Markers markers = assertInstanceOf(ServerMessage.Markers.class,
+                ServerMessage.parse(out.array()));
+        assertEquals(new ServerMessage.Marker(10, 20, "bed", "База"), markers.markers().get(0));
     }
 
     @Test
@@ -98,13 +112,13 @@ class ServerMessageTest {
 
     private static byte[] markers(String[] icons) {
         int size = 1 + 2;
-        for (String icon : icons) size += 4 + 4 + 1 + icon.getBytes(StandardCharsets.UTF_8).length;
+        for (String icon : icons) size += 4 + 4 + 1 + icon.getBytes(StandardCharsets.UTF_8).length + 1;
 
         ByteBuffer out = ByteBuffer.allocate(size);
         out.put((byte) ServerMessage.MARKERS).putShort((short) icons.length);
         for (int i = 0; i < icons.length; i++) {
             byte[] id = icons[i].getBytes(StandardCharsets.UTF_8);
-            out.putInt(-1000 + i).putInt(500 + i).put((byte) id.length).put(id);
+            out.putInt(-1000 + i).putInt(500 + i).put((byte) id.length).put(id).put((byte) 0);
         }
         return out.array();
     }

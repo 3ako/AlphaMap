@@ -33,12 +33,10 @@ public record AtlasGeometry(
         return tilesPerSide * tilePixels;
     }
 
-    /// Сторона видимого квадрата в пикселях атласа — то, что и надо показывать.
     public double visiblePixels() {
         return 2.0 * radius / blocksPerPixel;
     }
 
-    /// Пиксель атласа, с которого видимый квадрат начинается. Центр мира — ноль, атлас симметричен.
     public double visibleOriginPixel() {
         return pixelX(-radius);
     }

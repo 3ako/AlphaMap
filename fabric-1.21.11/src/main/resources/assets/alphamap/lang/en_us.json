@@ -15,6 +15,7 @@
   "alphamap.settings.labels": "Structure names from zoom %s",
   "alphamap.settings.labels.never": "Structure names: never",
 
+  "alphamap.marker.bed": "Bed",
   "alphamap.marker.mineshaft": "Abandoned Mineshaft",
   "alphamap.marker.stronghold": "End Stronghold",
   "alphamap.marker.copper": "Copper Dungeon",

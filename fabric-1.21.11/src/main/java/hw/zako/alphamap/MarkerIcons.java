@@ -12,7 +12,7 @@ import java.util.concurrent.ConcurrentHashMap;
 public class MarkerIcons {
 
     private final Set<String> KNOWN = Set.of(
-            "airland", "bastion", "beacon", "cave_evil", "cave_good", "copper", "mill",
+            "airland", "bastion", "beacon", "bed", "cave_evil", "cave_good", "copper", "mill",
             "mineshaft", "promzone", "quarry_ore", "quarry_sulfur", "stronghold", "village");
 
     private final Map<String, Identifier> RESOLVED = new ConcurrentHashMap<>();

@@ -9,7 +9,7 @@ import java.util.List;
 public class MapProtocol {
 
     public final String CHANNEL = "alphaisland:map";
-    public final int VERSION = 3;
+    public final int VERSION = 4;
 
     public final int HASH_LENGTH = 16;
 

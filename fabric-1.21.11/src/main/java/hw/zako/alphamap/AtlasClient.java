@@ -116,8 +116,6 @@ public final class AtlasClient {
         AtlasTextures previous = atlas;
         boolean sameIsland = previous != null && previous.geometry().id() == geometry.id();
         if (previous != null) {
-            // Переносить тайлы можно, только если сетка не поменялась: иначе тот же индекс означает
-            // другой кусок мира. Геометрия — рекорд, так что сравнение покрывает и остров, и сетку.
             if (previous.geometry().equals(geometry)) previous.handOver(next);
             previous.release();
         }

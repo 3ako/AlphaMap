@@ -15,6 +15,7 @@
   "alphamap.settings.labels": "Названия структур с приближения %s",
   "alphamap.settings.labels.never": "Названия структур: не показывать",
 
+  "alphamap.marker.bed": "Кровать",
   "alphamap.marker.mineshaft": "Заброшенная шахта",
   "alphamap.marker.stronghold": "Крепость Энда",
   "alphamap.marker.copper": "Медный данж",
