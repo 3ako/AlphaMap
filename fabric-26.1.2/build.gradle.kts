@@ -1,11 +1,11 @@
 plugins {
-    id("fabric-loom") version "1.17.20"
+    id("net.fabricmc.fabric-loom") version "1.17.20"
 }
 
-val minecraftVersion = "1.21.11"
-val fabricApiVersion = "0.141.6+1.21.11"
-val javaVersion = 21
-val modMenuVersion = "17.0.1-beta.1"
+val minecraftVersion = "26.1.2"
+val fabricApiVersion = "0.155.3+26.1.2"
+val javaVersion = 25
+val modMenuVersion = "18.0.0"
 
 base {
     archivesName.set("alphamap-$minecraftVersion")
@@ -13,6 +13,7 @@ base {
 
 sourceSets.main {
     java.srcDir(rootProject.file("common/src/main/java"))
+    java.srcDir(rootProject.file("common-26/src/main/java"))
     java.srcDir(rootProject.file("common-client-flat/src/main/java"))
     resources.srcDir(rootProject.file("common/src/main/resources"))
 }
@@ -23,13 +24,12 @@ repositories {
 
 dependencies {
     minecraft("com.mojang:minecraft:$minecraftVersion")
-    mappings(loom.officialMojangMappings())
 
-    modImplementation("net.fabricmc:fabric-loader:${property("loader_version")}")
-    modImplementation("net.fabricmc.fabric-api:fabric-api:$fabricApiVersion")
+    implementation("net.fabricmc:fabric-loader:${property("loader_version")}")
+    implementation("net.fabricmc.fabric-api:fabric-api:$fabricApiVersion")
 
-    modCompileOnly("com.terraformersmc:modmenu:$modMenuVersion")
-    modLocalRuntime("com.terraformersmc:modmenu:$modMenuVersion")
+    compileOnly("com.terraformersmc:modmenu:$modMenuVersion")
+    localRuntime("com.terraformersmc:modmenu:$modMenuVersion")
 
     implementation(project(":protocol"))
     include(project(":protocol"))
