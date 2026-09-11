@@ -1,13 +1,15 @@
 plugins {
-    id("fabric-loom") version "1.17.20"
+    // С 26.1 игра не обфусцирована и маппингов Mojang для неё Mojang не выкладывает: берём вариант
+    // плагина без ремапа. Отсюда же отсутствие mappings() и обычные зависимости вместо mod*.
+    id("net.fabricmc.fabric-loom") version "1.17.20"
 }
 
 // Всё, что привязано к версии игры, стоит здесь и больше нигде. Модуль под новую версию — это этот
 // файл с другими числами плюс горстка классов compat-слоя рядом (Canvas, Compat, *Hud, WaypointScreen).
-val minecraftVersion = "1.21.11"
-val fabricApiVersion = "0.141.6+1.21.11"
-val javaVersion = 21
-val modMenuVersion = "17.0.1-beta.1"
+val minecraftVersion = "26.1.2"
+val fabricApiVersion = "0.155.3+26.1.2"
+val javaVersion = 25
+val modMenuVersion = "18.0.0"
 
 base {
     archivesName.set("alphamap-$minecraftVersion")
@@ -15,9 +17,11 @@ base {
 
 // Общий код и ресурсы лежат по разу и подключаются модулями версий:
 //   common             — то, что одинаково везде;
+//   common-26          — рисование через GuiGraphicsExtractor и регистрации fabric-api, с 26.1;
 //   common-client-flat — доступ к клиенту напрямую через Minecraft, до 26.2.
 sourceSets.main {
     java.srcDir(rootProject.file("common/src/main/java"))
+    java.srcDir(rootProject.file("common-26/src/main/java"))
     java.srcDir(rootProject.file("common-client-flat/src/main/java"))
     resources.srcDir(rootProject.file("common/src/main/resources"))
 }
@@ -28,17 +32,14 @@ repositories {
 
 dependencies {
     minecraft("com.mojang:minecraft:$minecraftVersion")
-    // Мапинги Mojang, а не yarn: имена тогда совпадают с серверной стороной (Paper/Leaf), и
-    // контракт канала читается одинаково по обе стороны.
-    mappings(loom.officialMojangMappings())
 
-    modImplementation("net.fabricmc:fabric-loader:${property("loader_version")}")
-    modImplementation("net.fabricmc.fabric-api:fabric-api:$fabricApiVersion")
+    implementation("net.fabricmc:fabric-loader:${property("loader_version")}")
+    implementation("net.fabricmc.fabric-api:fabric-api:$fabricApiVersion")
 
     // Только ради экрана настроек. Мод работает и без ModMenu — точка входа просто не позовётся.
-    modCompileOnly("com.terraformersmc:modmenu:$modMenuVersion")
+    compileOnly("com.terraformersmc:modmenu:$modMenuVersion")
     // В dev-клиенте ModMenu стоит, чтобы экран настроек можно было открыть и проверить.
-    modLocalRuntime("com.terraformersmc:modmenu:$modMenuVersion")
+    localRuntime("com.terraformersmc:modmenu:$modMenuVersion")
 
     implementation(project(":protocol"))
     // Протокол не мод, а обычная библиотека, поэтому едет внутрь джарника вложенным архивом.
