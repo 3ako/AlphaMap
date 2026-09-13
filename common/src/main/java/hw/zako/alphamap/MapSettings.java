@@ -106,6 +106,15 @@ public final class MapSettings {
     boolean compass = false;
 
     @NonFinal
+    SelfShape selfShape = SelfShape.CROSS;
+
+    @NonFinal
+    int selfColour = 0xFF4040;
+
+    @NonFinal
+    double selfScale = 1.0;
+
+    @NonFinal
     boolean compassOutside = true;
 
     @NonFinal
@@ -150,6 +159,9 @@ public final class MapSettings {
         markerScale = Math.clamp(markerScale, MIN_SCALE, MAX_SCALE);
         worldMarkerScale = Math.clamp(worldMarkerScale, MIN_SCALE, MAX_SCALE);
         if (minimapShape == null) minimapShape = MinimapShape.CIRCLE;
+        if (selfShape == null) selfShape = SelfShape.CROSS;
+        selfColour &= 0xFFFFFF;
+        selfScale = Math.clamp(selfScale, MIN_SCALE, MAX_SCALE);
         if (minimapHidden == null) minimapHidden = new HashSet<>();
         if (worldShown == null) {
             worldShown = new HashSet<>();
@@ -294,6 +306,30 @@ public final class MapSettings {
 
     public void compass(boolean value) {
         compass = value;
+    }
+
+    public SelfShape selfShape() {
+        return selfShape;
+    }
+
+    public void selfShape(SelfShape value) {
+        selfShape = value;
+    }
+
+    public int selfColour() {
+        return selfColour;
+    }
+
+    public void selfColour(int value) {
+        selfColour = value;
+    }
+
+    public double selfScale() {
+        return selfScale;
+    }
+
+    public void selfScale(double value) {
+        selfScale = value;
     }
 
     public boolean compassOutside() {

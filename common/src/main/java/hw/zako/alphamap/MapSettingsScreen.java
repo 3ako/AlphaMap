@@ -128,6 +128,11 @@ public final class MapSettingsScreen extends Screen {
                 .bounds(right, top + GAP * 3, WIDTH, HEIGHT)
                 .build());
 
+        addRenderableWidget(Button.builder(Component.translatable("alphamap.settings.self"),
+                        button -> Vanilla.setScreen(minecraft, new SelfMarkerScreen(this)))
+                .bounds(right, top + GAP * 4, WIDTH, HEIGHT)
+                .build());
+
         addRenderableWidget(Button.builder(Component.translatable("gui.done"), button -> onClose())
                 .bounds((width - WIDTH) / 2, top + GAP * 6, WIDTH, HEIGHT)
                 .build());

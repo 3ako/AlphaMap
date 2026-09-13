@@ -15,6 +15,6 @@ public final class MapHud implements HudElement {
 
     @Override
     public void render(GuiGraphics graphics, DeltaTracker delta) {
-        overlay.draw(new Canvas(graphics));
+        overlay.draw(new Canvas(graphics), delta.getGameTimeDeltaPartialTick(true));
     }
 }

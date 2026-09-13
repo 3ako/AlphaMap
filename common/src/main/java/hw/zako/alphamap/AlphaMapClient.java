@@ -24,6 +24,9 @@ public final class AlphaMapClient implements ClientModInitializer {
     public static final KeyMapping OPEN_SETTINGS = new KeyMapping(
             "key.alphamap.settings", InputConstants.Type.KEYSYM, GLFW.GLFW_KEY_H, CATEGORY);
 
+    public static final KeyMapping ADD_WAYPOINT = new KeyMapping(
+            "key.alphamap.waypoint", InputConstants.Type.KEYSYM, GLFW.GLFW_KEY_B, CATEGORY);
+
     private static final Identifier OVERLAY = Identifier.fromNamespaceAndPath("alphamap", "map");
 
     public static boolean pinned() {
@@ -40,6 +43,16 @@ public final class AlphaMapClient implements ClientModInitializer {
 
     public static MinimapOverlay minimap() {
         return minimap;
+    }
+
+    private static void mark(Minecraft client) {
+        Waypoints.add(new Waypoint(
+                Math.floor(client.player.getX()) + 0.5,
+                client.player.getY(),
+                Math.floor(client.player.getZ()) + 0.5,
+                Waypoints.defaultName(), Waypoints.PALETTE[0]));
+
+        Vanilla.setScreen(client, WaypointScreen.of(Waypoints.all().size() - 1));
     }
 
     private static void forget(AtlasClient atlas, Minecraft client) {
@@ -61,6 +74,7 @@ public final class AlphaMapClient implements ClientModInitializer {
 
         Fabric.registerKey(OPEN_MAP);
         Fabric.registerKey(OPEN_SETTINGS);
+        Fabric.registerKey(ADD_WAYPOINT);
 
         minimap = new MinimapOverlay(atlas, settings);
 
@@ -100,6 +114,10 @@ public final class AlphaMapClient implements ClientModInitializer {
                     if (Vanilla.screen(client) == null) {
                         Vanilla.setScreen(client, new MapSettingsScreen(null));
                     }
+                }
+
+                while (ADD_WAYPOINT.consumeClick()) {
+                    if (Vanilla.screen(client) == null && AtlasClient.available()) mark(client);
                 }
 
                 boolean open = mapOpen();

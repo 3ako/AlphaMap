@@ -30,7 +30,6 @@ public final class MapOverlay {
 
     private static final int NAMED_LABEL = 0x62E8FF;
     private static final int LABEL = 0xFFFFFF;
-    private static final int PLAYER = 0xFF4040;
     private static final int CURSOR = 0xFFFFFFFF;
     private static final int OPAQUE = 0xFF000000;
     private static final int OUTLINE = 0x000000;
@@ -38,7 +37,7 @@ public final class MapOverlay {
     AtlasClient atlas;
     MapSettings settings;
 
-    public void draw(Canvas canvas) {
+    public void draw(Canvas canvas, float partialTick) {
         if (!AlphaMapClient.mapOpen()) return;
 
         Minecraft client = Minecraft.getInstance();
@@ -95,7 +94,7 @@ public final class MapOverlay {
             marker(canvas, client, geometry, settings, marker, mapX, mapY, scale, alpha, labels);
         }
         death(canvas, client, geometry, settings, mapX, mapY, scale);
-        player(canvas, client, geometry, mapX, mapY, scale, alpha);
+        player(canvas, client, geometry, settings, mapX, mapY, scale, alpha, partialTick);
         canvas.scissorOff();
 
         if (settings.compass()) Compass.square(canvas, client.font, left, top, side);
@@ -415,14 +414,16 @@ public final class MapOverlay {
     }
 
     private static void player(Canvas canvas, Minecraft client, AtlasGeometry geometry,
-                               float mapX, float mapY, float scale, int alpha) {
+                               MapSettings settings, float mapX, float mapY, float scale,
+                               int alpha, float partialTick) {
         int x = (int) (mapX + geometry.pixelX(client.player.getX()) * scale);
         int y = (int) (mapY + geometry.pixelZ(client.player.getZ()) * scale);
 
-        canvas.fill(x - 4, y - 1, x + 5, y + 2, OUTLINE | alpha);
-        canvas.fill(x - 1, y - 4, x + 2, y + 5, OUTLINE | alpha);
-        canvas.fill(x - 3, y, x + 4, y + 1, PLAYER | alpha);
-        canvas.fill(x, y - 3, x + 1, y + 4, PLAYER | alpha);
+        float facing = (float) Math.toRadians(client.player.getViewYRot(partialTick))
+                + (float) Math.PI;
+
+        SelfMark.draw(canvas, settings.selfShape(), x, y,
+                settings.selfScale(), settings.selfColour(), alpha, facing);
     }
 
     private static void message(Canvas canvas, Minecraft client, @Nullable Component text) {
