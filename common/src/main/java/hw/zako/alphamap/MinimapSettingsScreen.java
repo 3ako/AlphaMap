@@ -91,12 +91,13 @@ public final class MinimapSettingsScreen extends Screen {
             }
         });
 
-        toggle(right, top, settings::minimapPlayers, settings::minimapPlayers,
-                "alphamap.minimap.players.on", "alphamap.minimap.players.off");
-        toggle(right, top + GAP, settings::minimapHostiles, settings::minimapHostiles,
-                "alphamap.minimap.hostiles.on", "alphamap.minimap.hostiles.off");
-        toggle(right, top + GAP * 2, settings::minimapPassives, settings::minimapPassives,
-                "alphamap.minimap.passives.on", "alphamap.minimap.passives.off");
+        addRenderableWidget(Button.builder(Component.translatable("alphamap.minimap.mobs"),
+                        button -> Vanilla.setScreen(minecraft, new MobListScreen(this)))
+                .bounds(right, top, WIDTH, HEIGHT)
+                .build());
+
+        toggle(right, top + GAP, settings::compassOutside, settings::compassOutside,
+                "alphamap.minimap.compass.outside", "alphamap.minimap.compass.inside");
 
         toggle(right, top + GAP * 3, settings::minimapWaypoints, settings::minimapWaypoints,
                 "alphamap.minimap.waypoints.on", "alphamap.minimap.waypoints.off");
@@ -122,6 +123,27 @@ public final class MinimapSettingsScreen extends Screen {
     @Override
     public void onClose() {
         Vanilla.setScreen(minecraft, parent);
+    }
+
+    private void kind(int x, int y, BooleanSupplier shown, Consumer<Boolean> setShown,
+                      BooleanSupplier heads, Consumer<Boolean> setHeads, String key) {
+        addRenderableWidget(Button.builder(kindLabel(shown, heads, key), button -> {
+            if (!shown.getAsBoolean()) {
+                setShown.accept(true);
+                setHeads.accept(false);
+            } else if (!heads.getAsBoolean()) {
+                setHeads.accept(true);
+            } else {
+                setShown.accept(false);
+            }
+            MapSettings.get().clampAndSave();
+            button.setMessage(kindLabel(shown, heads, key));
+        }).bounds(x, y, WIDTH, HEIGHT).build());
+    }
+
+    private Component kindLabel(BooleanSupplier shown, BooleanSupplier heads, String key) {
+        String state = !shown.getAsBoolean() ? "off" : heads.getAsBoolean() ? "heads" : "dots";
+        return Component.translatable("alphamap.minimap." + key + "." + state);
     }
 
     private void toggle(int x, int y, BooleanSupplier reader, Consumer<Boolean> writer,

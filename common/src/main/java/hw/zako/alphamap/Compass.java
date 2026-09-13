@@ -15,16 +15,18 @@ public class Compass {
     private final int[][] WAYS = {{0, -1}, {1, 0}, {0, 1}, {-1, 0}};
 
     public void around(Canvas canvas, Font font, float centreX, float centreY,
-                       double reach, float turn) {
+                       double reach, float turn, boolean square) {
         double cos = Math.cos(-turn);
         double sin = Math.sin(-turn);
 
         for (int i = 0; i < SIDES.length; i++) {
-            double dx = WAYS[i][0] * reach;
-            double dz = WAYS[i][1] * reach;
+            double across = WAYS[i][0] * cos - WAYS[i][1] * sin;
+            double down = WAYS[i][0] * sin + WAYS[i][1] * cos;
+            double push = square ? reach / Math.max(Math.abs(across), Math.abs(down)) : reach;
+
             canvas.centered(font, letter(i),
-                    (int) Math.round(centreX + dx * cos - dz * sin),
-                    (int) Math.round(centreY + dx * sin + dz * cos) - LINE,
+                    (int) Math.round(centreX + across * push),
+                    (int) Math.round(centreY + down * push) - LINE,
                     COLOUR);
         }
     }

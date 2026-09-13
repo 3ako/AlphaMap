@@ -6,6 +6,7 @@ import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import net.minecraft.client.Minecraft;
+import net.minecraft.world.entity.Entity;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.Identifier;
@@ -87,6 +88,7 @@ public final class MapOverlay {
 
         sketch(canvas, mapX, mapY, scale);
         waypoints(canvas, client, geometry, settings, mapX, mapY, scale, alpha);
+        players(canvas, client, geometry, settings, mapX, mapY, scale, alpha);
 
         boolean labels = zoom >= settings.labelZoom();
         for (ServerMessage.Marker marker : atlas.markers()) {
@@ -276,6 +278,35 @@ public final class MapOverlay {
             int x = Math.round(x1 + dx * i / steps);
             int y = Math.round(y1 + dy * i / steps);
             canvas.fill(x - 1, y - 1, x + 2, y + 2, SKETCH);
+        }
+    }
+
+    private static void players(Canvas canvas, Minecraft client, AtlasGeometry geometry,
+                                MapSettings settings, float mapX, float mapY, float scale, int alpha) {
+        if (client.player == null) return;
+
+        int face = Math.max(8, settings.markerPixels());
+        int half = Math.max(2, settings.markerPixels() / 4);
+        for (MinimapEntities.Dot mark : MinimapEntities.shown()) {
+            if (mark.kind() != MinimapEntities.Kind.PLAYER) continue;
+
+            Entity entity = mark.entity();
+            if (entity.isRemoved()) continue;
+
+            int x = (int) (mapX + geometry.pixelX(entity.getX()) * scale);
+            int y = (int) (mapY + geometry.pixelZ(entity.getZ()) * scale);
+
+            MobHeads.Head head = mark.head();
+            if (head != null && mark.texture() != null) {
+                canvas.blitRegion(mark.texture(), x - face / 2, y - face / 2, face, face,
+                        head.u(), head.v(), head.width(), head.height(),
+                        head.sheetWidth(), head.sheetHeight(), alpha | 0xFFFFFF);
+            } else {
+                canvas.fill(x - half, y - half, x + half, y + half, alpha | OUTLINE);
+                canvas.fill(x - half + 1, y - half + 1, x + half - 1, y + half - 1, alpha | 0xFFFFFF);
+            }
+
+            canvas.centered(client.font, entity.getName().getString(), x, y + face / 2 + 1, alpha | 0xFFFFFF);
         }
     }
 

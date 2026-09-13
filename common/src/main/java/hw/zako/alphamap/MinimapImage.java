@@ -18,7 +18,7 @@ final class MinimapImage {
     private static final int EDGE = 0xB0000000;
     private static final int OUTSIDE = 0x40000000;
 
-    private static final double MOVED_PIXELS = 0.5;
+    private static final double MOVED_PIXELS = 0.1;
     private static final float TURNED_RADIANS = 0.002f;
     private static final long REBUILD_INTERVAL_MILLIS = 20;
 

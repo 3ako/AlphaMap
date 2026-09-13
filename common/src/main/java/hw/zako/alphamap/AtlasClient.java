@@ -29,6 +29,7 @@ public final class AtlasClient {
 
     private static final long HELLO_INTERVAL_MILLIS = 5_000;
     private static final int HELLO_TRIES = 3;
+    private static final long REFRESH_INTERVAL_MILLIS = 60_000;
 
     private static final Executor OFF_THREAD =
             task -> Thread.ofVirtual().name("alphamap-io").start(task);
@@ -95,6 +96,12 @@ public final class AtlasClient {
         unanswered++;
         if (atlas == null) status = Component.translatable("alphamap.loading");
         ClientPlayNetworking.send(new MapPayload(MapProtocol.hello()));
+    }
+
+    public void refresh() {
+        if (atlas == null) return;
+        if (System.currentTimeMillis() - helloAt < REFRESH_INTERVAL_MILLIS) return;
+        hello();
     }
 
     public void tick() {

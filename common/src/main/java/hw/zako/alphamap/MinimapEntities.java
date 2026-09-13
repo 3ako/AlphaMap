@@ -4,6 +4,7 @@ import lombok.experimental.UtilityClass;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.client.multiplayer.PlayerInfo;
+import net.minecraft.resources.Identifier;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.Mob;
 import net.minecraft.world.entity.monster.Enemy;
@@ -23,7 +24,8 @@ public class MinimapEntities {
         PASSIVE
     }
 
-    public record Dot(Entity entity, Kind kind) {
+    public record Dot(Entity entity, Kind kind,
+                      @Nullable Identifier texture, MobHeads.@Nullable Head head) {
     }
 
     private final int REFRESH_TICKS = 10;
@@ -42,15 +44,19 @@ public class MinimapEntities {
         waited = 0;
     }
 
-    public void tick(Minecraft client, MapSettings settings, boolean ready) {
+    public void tick(Minecraft client, MapSettings settings, boolean ready, boolean mapOpen) {
         if (waited-- > 0) return;
         waited = REFRESH_TICKS;
 
         clear();
-        if (!ready || !settings.minimap() || client.player == null || client.level == null) return;
+        if (!ready || client.player == null || client.level == null) return;
+        if (!settings.minimap() && !mapOpen) return;
         if (!settings.minimapPlayers() && !settings.minimapHostiles() && !settings.minimapPassives()) return;
 
         double reach = settings.minimapBlocks();
+        if (mapOpen) {
+            reach = Math.max(reach, client.options.getEffectiveRenderDistance() * 16.0);
+        }
         double range = reach * reach;
         collect(client, client.level, settings, range);
     }
@@ -66,19 +72,34 @@ public class MinimapEntities {
             Kind kind = kind(client, entity, settings);
             if (kind == null) continue;
 
-            shown.add(new Dot(entity, kind));
+            String id = Vanilla.mobId(entity);
+            String state = id != null && MobHeads.has(id)
+                    ? settings.minimapMob(id)
+                    : kindState(settings, kind);
+            if (MapSettings.OFF.equals(state)) continue;
+
+            MobHeads.Head head = MapSettings.HEADS.equals(state) ? MobHeads.of(entity) : null;
+            Identifier texture = head != null ? Vanilla.mobTexture(client, entity) : null;
+            shown.add(new Dot(entity, kind, texture, texture != null ? head : null));
             if (shown.size() >= LIMIT) return;
         }
     }
 
     private @Nullable Kind kind(Minecraft client, Entity entity, MapSettings settings) {
         if (entity instanceof Player player) {
-            return settings.minimapPlayers() && !spectator(client, player) ? Kind.PLAYER : null;
+            return spectator(client, player) ? null : Kind.PLAYER;
         }
         if (!(entity instanceof Mob)) return null;
+        return entity instanceof Enemy ? Kind.HOSTILE : Kind.PASSIVE;
+    }
 
-        if (entity instanceof Enemy) return settings.minimapHostiles() ? Kind.HOSTILE : null;
-        return settings.minimapPassives() ? Kind.PASSIVE : null;
+    private String kindState(MapSettings settings, Kind kind) {
+        boolean shown = switch (kind) {
+            case PLAYER -> settings.minimapPlayers();
+            case HOSTILE -> settings.minimapHostiles();
+            case PASSIVE -> settings.minimapPassives();
+        };
+        return shown ? MapSettings.DOTS : MapSettings.OFF;
     }
 
     private boolean spectator(Minecraft client, Player player) {

@@ -59,6 +59,13 @@ public final class Canvas {
         graphics.blit(RenderPipelines.GUI_TEXTURED, texture, x, y, 0.0f, 0.0f, size, size, size, size, tint);
     }
 
+    public void blitRegion(Identifier texture, int x, int y, int width, int height,
+                           float u, float v, int regionWidth, int regionHeight,
+                           int textureWidth, int textureHeight, int tint) {
+        graphics.blit(RenderPipelines.GUI_TEXTURED, texture, x, y, u, v, width, height,
+                regionWidth, regionHeight, textureWidth, textureHeight, tint);
+    }
+
     public void text(Font font, String text, int x, int y, int colour) {
         graphics.text(font, text, x, y, colour);
     }

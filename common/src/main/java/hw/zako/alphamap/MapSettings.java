@@ -10,7 +10,9 @@ import net.fabricmc.loader.api.FabricLoader;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Set;
 
 @FieldDefaults(level = AccessLevel.PRIVATE)
@@ -75,6 +77,17 @@ public final class MapSettings {
     boolean minimapPassives = false;
 
     @NonFinal
+    boolean minimapPlayerHeads = true;
+
+    @NonFinal
+    boolean minimapHostileHeads = true;
+
+    @NonFinal
+    boolean minimapPassiveHeads = true;
+
+    Map<String, String> minimapMobs = new HashMap<>();
+
+    @NonFinal
     boolean minimapWaypoints = true;
 
     @NonFinal
@@ -91,6 +104,9 @@ public final class MapSettings {
 
     @NonFinal
     boolean compass = false;
+
+    @NonFinal
+    boolean compassOutside = true;
 
     @NonFinal
     boolean minimapCoordinates = true;
@@ -195,6 +211,67 @@ public final class MapSettings {
         minimapPassives = value;
     }
 
+    public boolean minimapPlayerHeads() {
+        return minimapPlayerHeads;
+    }
+
+    public void minimapPlayerHeads(boolean value) {
+        minimapPlayerHeads = value;
+    }
+
+    public boolean minimapHostileHeads() {
+        return minimapHostileHeads;
+    }
+
+    public void minimapHostileHeads(boolean value) {
+        minimapHostileHeads = value;
+    }
+
+    public boolean minimapPassiveHeads() {
+        return minimapPassiveHeads;
+    }
+
+    public void minimapPassiveHeads(boolean value) {
+        minimapPassiveHeads = value;
+    }
+
+    public static final String OFF = "off", DOTS = "dots", HEADS = "heads";
+
+    public String minimapMob(String rawId) {
+        String id = MobHeads.key(rawId);
+        String own = minimapMobs.get(id);
+        if (own != null) return own;
+        boolean hostile = MobHeads.hostile(id);
+        boolean shown = "player".equals(id) ? minimapPlayers : hostile ? minimapHostiles : minimapPassives;
+        if (!shown) return OFF;
+        boolean heads = "player".equals(id) ? minimapPlayerHeads
+                : hostile ? minimapHostileHeads : minimapPassiveHeads;
+        return heads ? HEADS : DOTS;
+    }
+
+    public void minimapMob(String id, String state) {
+        minimapMobs.put(id, state);
+    }
+
+    public void minimapKind(boolean hostile, String state) {
+        boolean shown = !OFF.equals(state);
+        boolean heads = HEADS.equals(state);
+        if (hostile) {
+            minimapHostiles = shown;
+            minimapHostileHeads = heads;
+        } else {
+            minimapPassives = shown;
+            minimapPassiveHeads = heads;
+        }
+        minimapMobs.keySet().removeIf(id -> !"player".equals(id) && MobHeads.hostile(id) == hostile);
+    }
+
+    public String minimapKind(boolean hostile) {
+        boolean shown = hostile ? minimapHostiles : minimapPassives;
+        if (!shown) return OFF;
+        return (hostile ? minimapHostileHeads : minimapPassiveHeads) ? HEADS : DOTS;
+    }
+
     public boolean minimapWaypoints() {
         return minimapWaypoints;
     }
@@ -217,6 +294,14 @@ public final class MapSettings {
 
     public void compass(boolean value) {
         compass = value;
+    }
+
+    public boolean compassOutside() {
+        return compassOutside;
+    }
+
+    public void compassOutside(boolean value) {
+        compassOutside = value;
     }
 
     public boolean deathPoint() {

@@ -21,6 +21,9 @@ public final class AlphaMapClient implements ClientModInitializer {
     public static final KeyMapping OPEN_MAP = new KeyMapping(
             "key.alphamap.open", InputConstants.Type.KEYSYM, GLFW.GLFW_KEY_G, CATEGORY);
 
+    public static final KeyMapping OPEN_SETTINGS = new KeyMapping(
+            "key.alphamap.settings", InputConstants.Type.KEYSYM, GLFW.GLFW_KEY_H, CATEGORY);
+
     private static final Identifier OVERLAY = Identifier.fromNamespaceAndPath("alphamap", "map");
 
     public static boolean pinned() {
@@ -57,6 +60,7 @@ public final class AlphaMapClient implements ClientModInitializer {
                 (payload, context) -> atlas.receive(payload.data()));
 
         Fabric.registerKey(OPEN_MAP);
+        Fabric.registerKey(OPEN_SETTINGS);
 
         minimap = new MinimapOverlay(atlas, settings);
 
@@ -92,14 +96,23 @@ public final class AlphaMapClient implements ClientModInitializer {
                     return;
                 }
 
+                while (OPEN_SETTINGS.consumeClick()) {
+                    if (Vanilla.screen(client) == null) {
+                        Vanilla.setScreen(client, new MapSettingsScreen(null));
+                    }
+                }
+
                 boolean open = mapOpen();
                 boolean ready = atlas.ready();
                 boolean wanted = open || (settings.minimap() && AtlasClient.available());
                 if (wanted && (!wasWanted || !ready)) atlas.hello();
-                if (wanted) atlas.tick();
+                if (wanted) {
+                    atlas.refresh();
+                    atlas.tick();
+                }
 
                 MapInput.update(client, open && ready);
-                MinimapEntities.tick(client, settings, ready);
+                MinimapEntities.tick(client, settings, ready, open);
                 wasWanted = wanted;
             }
         });

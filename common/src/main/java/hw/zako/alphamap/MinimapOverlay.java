@@ -9,6 +9,7 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.core.BlockPos;
 import net.minecraft.resources.Identifier;
 import net.minecraft.world.entity.Entity;
+import net.minecraft.world.phys.Vec3;
 
 @RequiredArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
@@ -28,6 +29,7 @@ public final class MinimapOverlay {
     private static final int FRAME = 0xB0FFFFFF;
 
     private static final int EDGE_GAP = 3;
+    private static final int OUTSIDE_GAP = 6;
     private static final int DOT = 2;
 
     AtlasClient atlas;
@@ -87,8 +89,11 @@ public final class MinimapOverlay {
         float facing = (float) Math.toRadians(client.player.getViewYRot(partialTick)) + (float) Math.PI;
         float turn = settings.minimapNorth() ? 0.0f : facing;
 
-        Identifier texture = image.build(atlas, geometry,
-                client.player.getX(), client.player.getZ(),
+        Vec3 position = client.player.getPosition(partialTick);
+        double playerX = position.x;
+        double playerZ = position.z;
+
+        Identifier texture = image.build(atlas, geometry, playerX, playerZ,
                 size, settings.minimapBlocks(), turn, settings.minimapShape());
         if (texture == null) return;
 
@@ -96,17 +101,20 @@ public final class MinimapOverlay {
 
         float centreX = left + size / 2.0f;
         float centreY = top + size / 2.0f;
+        boolean outside = settings.compass() && settings.compassOutside();
         if (settings.compass()) {
-            Compass.around(canvas, client.font, centreX, centreY, size / 2.0 - EDGE_GAP - 4, turn);
+            Compass.around(canvas, client.font, centreX, centreY,
+                    outside ? size / 2.0 + OUTSIDE_GAP : size / 2.0 - EDGE_GAP - 4,
+                    turn, outside && settings.minimapShape() == MinimapShape.SQUARE);
         }
-        marks(canvas, client, centreX, centreY, size, turn);
+        marks(canvas, client, playerX, playerZ, centreX, centreY, size, turn);
         arrow(canvas, centreX, centreY, settings.minimapNorth() ? facing : 0.0f);
 
-        if (settings.minimapCoordinates()) coordinates(canvas, client, left, top, size);
+        if (settings.minimapCoordinates()) coordinates(canvas, client, left, top, size, outside);
     }
 
-    private void marks(Canvas canvas, Minecraft client, float centreX, float centreY,
-                       int size, float turn) {
+    private void marks(Canvas canvas, Minecraft client, double playerX, double playerZ,
+                       float centreX, float centreY, int size, float turn) {
         double scale = size / (double) settings.minimapBlocks();
         double cos = Math.cos(-turn);
         double sin = Math.sin(-turn);
@@ -122,8 +130,8 @@ public final class MinimapOverlay {
             for (ServerMessage.Marker marker : atlas.markers()) {
                 if (!settings.minimapMarkerShown(marker.icon())) continue;
 
-                double dx = (marker.x() + 0.5 - client.player.getX()) * scale;
-                double dz = (marker.z() + 0.5 - client.player.getZ()) * scale;
+                double dx = (marker.x() + 0.5 - playerX) * scale;
+                double dz = (marker.z() + 0.5 - playerZ) * scale;
                 double across = dx * cos - dz * sin;
                 double down = dx * sin + dz * cos;
 
@@ -138,8 +146,8 @@ public final class MinimapOverlay {
 
         BlockPos death = DeathPoint.of(client, settings);
         if (death != null) {
-            double dx = (death.getX() + 0.5 - client.player.getX()) * scale;
-            double dz = (death.getZ() + 0.5 - client.player.getZ()) * scale;
+            double dx = (death.getX() + 0.5 - playerX) * scale;
+            double dz = (death.getZ() + 0.5 - playerZ) * scale;
             double across = dx * cos - dz * sin;
             double down = dx * sin + dz * cos;
             double hug = hug(across, down, limit, circle);
@@ -150,8 +158,8 @@ public final class MinimapOverlay {
 
         if (settings.minimapWaypoints()) {
             for (Waypoint waypoint : Waypoints.all()) {
-                double dx = (waypoint.x() - client.player.getX()) * scale;
-                double dz = (waypoint.z() - client.player.getZ()) * scale;
+                double dx = (waypoint.x() - playerX) * scale;
+                double dz = (waypoint.z() - playerZ) * scale;
                 double across = dx * cos - dz * sin;
                 double down = dx * sin + dz * cos;
                 double hug = hug(across, down, limit, circle);
@@ -166,14 +174,23 @@ public final class MinimapOverlay {
             Entity entity = mark.entity();
             if (entity.isRemoved()) continue;
 
-            double dx = (entity.getX() - client.player.getX()) * scale;
-            double dz = (entity.getZ() - client.player.getZ()) * scale;
+            double dx = (entity.getX() - playerX) * scale;
+            double dz = (entity.getZ() - playerZ) * scale;
             double across = dx * cos - dz * sin;
             double down = dx * sin + dz * cos;
             if (hug(across, down, limit, circle) < 1.0) continue;
 
-            spot(canvas, (int) Math.round(centreX + across),
-                    (int) Math.round(centreY + down), colour(mark.kind()), dot);
+            int px = (int) Math.round(centreX + across);
+            int py = (int) Math.round(centreY + down);
+            MobHeads.Head head = mark.head();
+            if (head != null && mark.texture() != null) {
+                int face = Math.max(6, dot * 3);
+                canvas.blitRegion(mark.texture(), px - face / 2, py - face / 2, face, face,
+                        head.u(), head.v(), head.width(), head.height(),
+                        head.sheetWidth(), head.sheetHeight(), 0xFFFFFFFF);
+            } else {
+                spot(canvas, px, py, colour(mark.kind()), dot);
+            }
         }
     }
 
@@ -210,15 +227,17 @@ public final class MinimapOverlay {
         canvas.pop();
     }
 
-    private void coordinates(Canvas canvas, Minecraft client, int left, int top, int size) {
+    private void coordinates(Canvas canvas, Minecraft client, int left, int top, int size,
+                             boolean compassOutside) {
         String text = "%d, %d, %d".formatted(
                 Math.round(client.player.getX()),
                 Math.round(client.player.getY()),
                 Math.round(client.player.getZ()));
 
+        int step = compassOutside ? 11 : 0;
         int centre = left + size / 2;
-        boolean below = top + size + 12 <= canvas.height();
-        int line = below ? top + size + 2 : top - 11;
+        boolean below = top + size + 12 + step <= canvas.height();
+        int line = below ? top + size + 2 + step : top - 11 - step;
         int width = client.font.width(text);
         canvas.fill(centre - width / 2 - 3, line - 1, centre + width / 2 + 3, line + 10, TEXT_BACKING);
         canvas.centered(client.font, text, centre, line, TEXT);

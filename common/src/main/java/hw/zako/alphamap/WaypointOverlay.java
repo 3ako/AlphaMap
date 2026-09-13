@@ -57,15 +57,16 @@ public final class WaypointOverlay {
 
         Vec3 offset = point.subtract(camera.position());
         Vector3fc forward = camera.forwardVector();
-        boolean behind = offset.x * forward.x() + offset.y * forward.y() + offset.z * forward.z() <= 0;
+        if (offset.x * forward.x() + offset.y * forward.y() + offset.z * forward.z() <= 0) return;
 
         int width = canvas.width();
         int height = canvas.height();
 
+        int down = (int) Math.round((0.5 - screen.y * 0.5) * height);
+        if (down > height - EDGE) return;
+
         int x = Math.clamp(Math.round((screen.x * 0.5 + 0.5) * width), EDGE, width - EDGE);
-        int y = behind
-                ? height - EDGE
-                : Math.clamp(Math.round((0.5 - screen.y * 0.5) * height), EDGE, height - EDGE);
+        int y = Math.max(down, EDGE);
 
         int distance = (int) Math.round(Math.sqrt(
                 Math.pow(wx - client.player.getX(), 2)
