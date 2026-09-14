@@ -8,7 +8,10 @@ import org.jetbrains.annotations.Nullable;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.attribute.FileTime;
+import java.time.Instant;
 import java.util.Comparator;
+import java.util.List;
 import java.util.HexFormat;
 import java.util.stream.Stream;
 
@@ -43,14 +46,33 @@ public final class TileCache {
         }
     }
 
-    public void keepOnly(long atlasId) {
-        String keeping = Long.toHexString(atlasId);
+    public void keepRecent(long atlasId, int islands) {
+        try {
+            Path current = directoryOf(atlasId);
+            Files.createDirectories(current);
+            Files.setLastModifiedTime(current, FileTime.from(Instant.now()));
+        } catch (IOException untouchable) {
+            return;
+        }
+
         try (Stream<Path> directories = Files.list(root)) {
-            for (Path directory : directories.toList()) {
-                if (directory.getFileName().toString().equals(keeping)) continue;
+            List<Path> stale = directories
+                    .filter(Files::isDirectory)
+                    .sorted(Comparator.comparing(TileCache::touchedAt).reversed())
+                    .skip(islands)
+                    .toList();
+            for (Path directory : stale) {
                 delete(directory);
             }
         } catch (IOException nothingToClean) {
+        }
+    }
+
+    private static FileTime touchedAt(Path directory) {
+        try {
+            return Files.getLastModifiedTime(directory);
+        } catch (IOException unknown) {
+            return FileTime.fromMillis(0);
         }
     }
 

@@ -23,7 +23,8 @@ public class Waypoints {
     private final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
 
     private List<Waypoint> loaded = new ArrayList<>();
-    private String server = "";
+    private long island;
+    private boolean known;
 
     public List<Waypoint> all() {
         return loaded;
@@ -50,30 +51,56 @@ public class Waypoints {
         return "Метка " + (loaded.size() + 1);
     }
 
-    public void enter() {
-        server = key();
+    public boolean ready() {
+        return known;
+    }
+
+    public void enter(long islandId) {
+        if (known && island == islandId) return;
+
+        island = islandId;
+        known = true;
         loaded = read();
     }
 
     public void leave() {
         loaded = new ArrayList<>();
-        server = "";
+        island = 0;
+        known = false;
     }
 
-    private String key() {
+    private Path file() {
+        return folder().resolve(Long.toHexString(island) + ".json");
+    }
+
+    private Path folder() {
+        return FabricLoader.getInstance().getConfigDir().resolve("alphamap");
+    }
+
+    private List<Waypoint> read() {
+        Path file = file();
+        if (Files.exists(file)) return parse(file);
+
+        Path old = folder().resolve(server() + ".json");
+        if (!Files.exists(old)) return new ArrayList<>();
+
+        List<Waypoint> list = parse(old);
+        if (!write(file, list)) return list;
+
+        try {
+            Files.delete(old);
+        } catch (IOException stubborn) {
+        }
+        return list;
+    }
+
+    private String server() {
         var current = Minecraft.getInstance().getCurrentServer();
         if (current == null || current.ip == null) return "singleplayer";
         return current.ip.replaceAll("[^A-Za-z0-9._-]", "_");
     }
 
-    private Path file() {
-        return FabricLoader.getInstance().getConfigDir()
-                .resolve("alphamap").resolve(server + ".json");
-    }
-
-    private List<Waypoint> read() {
-        Path file = file();
-        if (!Files.exists(file)) return new ArrayList<>();
+    private List<Waypoint> parse(Path file) {
         try (var reader = Files.newBufferedReader(file)) {
             List<Waypoint> list = GSON.fromJson(reader, new TypeToken<List<Waypoint>>() {
             }.getType());
@@ -84,12 +111,17 @@ public class Waypoints {
     }
 
     private void save() {
-        if (server.isEmpty()) return;
+        if (!known) return;
+        write(file(), loaded);
+    }
+
+    private boolean write(Path file, List<Waypoint> list) {
         try {
-            Path file = file();
             Files.createDirectories(file.getParent());
-            Files.writeString(file, GSON.toJson(loaded));
+            Files.writeString(file, GSON.toJson(list));
+            return true;
         } catch (IOException unwritable) {
+            return false;
         }
     }
 }

@@ -106,6 +106,11 @@ public final class MapSettingsScreen extends Screen {
             }
         });
 
+        addRenderableWidget(Button.builder(Component.translatable("alphamap.settings.waypoints"),
+                        button -> Vanilla.setScreen(minecraft, new WaypointListScreen(this)))
+                .bounds(left, top + GAP * 5, WIDTH, HEIGHT)
+                .build());
+
         addRenderableWidget(Button.builder(Component.translatable("alphamap.settings.world"),
                         button -> Vanilla.setScreen(minecraft, MarkerListScreen.world(this)))
                 .bounds(right, top, WIDTH, HEIGHT)
@@ -133,6 +138,12 @@ public final class MapSettingsScreen extends Screen {
                 .bounds(right, top + GAP * 4, WIDTH, HEIGHT)
                 .build());
 
+        addRenderableWidget(Button.builder(waypoints(settings), button -> {
+            settings.worldWaypoints(!settings.worldWaypoints());
+            settings.clampAndSave();
+            button.setMessage(waypoints(settings));
+        }).bounds(right, top + GAP * 5, WIDTH, HEIGHT).build());
+
         addRenderableWidget(Button.builder(Component.translatable("gui.done"), button -> onClose())
                 .bounds((width - WIDTH) / 2, top + GAP * 6, WIDTH, HEIGHT)
                 .build());
@@ -147,6 +158,12 @@ public final class MapSettingsScreen extends Screen {
         return Component.translatable(settings.deathPoint()
                 ? "alphamap.settings.death.on"
                 : "alphamap.settings.death.off");
+    }
+
+    private static Component waypoints(MapSettings settings) {
+        return Component.translatable(settings.worldWaypoints()
+                ? "alphamap.settings.waypoints.world.on"
+                : "alphamap.settings.waypoints.world.off");
     }
 
     private static Component compass(MapSettings settings) {

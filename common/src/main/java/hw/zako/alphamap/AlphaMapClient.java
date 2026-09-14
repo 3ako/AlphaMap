@@ -60,6 +60,7 @@ public final class AlphaMapClient implements ClientModInitializer {
         MapInput.reset(client);
         MapSketch.clear();
         MinimapEntities.clear();
+        Waypoints.leave();
         minimap.release();
     }
 
@@ -82,14 +83,8 @@ public final class AlphaMapClient implements ClientModInitializer {
         HudElementRegistry.attachElementBefore(VanillaHudElements.CHAT, WAYPOINTS, new WaypointHud(new WaypointOverlay(atlas, settings)));
         HudElementRegistry.attachElementBefore(VanillaHudElements.CHAT, OVERLAY, new MapHud(new MapOverlay(atlas, settings)));
 
-        ClientPlayConnectionEvents.JOIN.register((handler, sender, client) -> {
-            forget(atlas, client);
-            Waypoints.enter();
-        });
-        ClientPlayConnectionEvents.DISCONNECT.register((handler, client) -> {
-            forget(atlas, client);
-            Waypoints.leave();
-        });
+        ClientPlayConnectionEvents.JOIN.register((handler, sender, client) -> forget(atlas, client));
+        ClientPlayConnectionEvents.DISCONNECT.register((handler, client) -> forget(atlas, client));
 
         ClientTickEvents.END_CLIENT_TICK.register(new ClientTickEvents.EndTick() {
             private boolean wasWanted;
@@ -117,7 +112,7 @@ public final class AlphaMapClient implements ClientModInitializer {
                 }
 
                 while (ADD_WAYPOINT.consumeClick()) {
-                    if (Vanilla.screen(client) == null && AtlasClient.available()) mark(client);
+                    if (Vanilla.screen(client) == null && Waypoints.ready()) mark(client);
                 }
 
                 boolean open = mapOpen();

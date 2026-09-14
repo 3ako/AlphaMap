@@ -1,12 +1,13 @@
 package hw.zako.alphamap;
 
 import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.screens.Screen;
 import org.jetbrains.annotations.Nullable;
 
 public final class WaypointScreen extends WaypointScreenBase {
 
-    private WaypointScreen(int index) {
-        super(index);
+    private WaypointScreen(int index, @Nullable Screen parent) {
+        super(index, parent);
     }
 
     @Override
@@ -16,6 +17,10 @@ public final class WaypointScreen extends WaypointScreenBase {
     }
 
     public static @Nullable WaypointScreen of(int index) {
-        return exists(index) ? new WaypointScreen(index) : null;
+        return of(index, null);
+    }
+
+    public static @Nullable WaypointScreen of(int index, @Nullable Screen parent) {
+        return exists(index) ? new WaypointScreen(index, parent) : null;
     }
 }

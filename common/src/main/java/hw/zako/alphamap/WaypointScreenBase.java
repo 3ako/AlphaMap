@@ -4,21 +4,27 @@ import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
+import org.jetbrains.annotations.Nullable;
 
 public abstract class WaypointScreenBase extends Screen {
 
     private static final int WIDTH = 220;
     private static final int HEIGHT = 20;
     private static final int SWATCH = 22;
+    private static final int DELETE = 0xFF5555;
+    private static final int REMOVE = 70;
+    private static final int COLUMN_GAP = 4;
 
     private final int index;
+    private final @Nullable Screen parent;
 
     private EditBox name;
     private int colour;
 
-    protected WaypointScreenBase(int index) {
+    protected WaypointScreenBase(int index, @Nullable Screen parent) {
         super(Component.translatable("alphamap.waypoint.title"));
         this.index = index;
+        this.parent = parent;
         this.colour = Waypoints.all().get(index).colour();
     }
 
@@ -33,7 +39,6 @@ public abstract class WaypointScreenBase extends Screen {
         name.setValue(waypoint.name());
         name.setResponder(text -> Waypoints.replace(index, current().renamed(text)));
         addRenderableWidget(name);
-        setInitialFocus(name);
 
         int palette = Waypoints.PALETTE.length;
         int paletteWidth = palette * SWATCH;
@@ -46,13 +51,27 @@ public abstract class WaypointScreenBase extends Screen {
             }).bounds(paletteX + i * SWATCH, y + 28, SWATCH - 2, SWATCH - 2).build());
         }
 
-        addRenderableWidget(Button.builder(Component.translatable("alphamap.waypoint.delete"), button -> {
-            Waypoints.remove(index);
-            onClose();
-        }).bounds(x, y + 60, WIDTH, HEIGHT).build());
+        addRenderableWidget(Button.builder(world(), button -> {
+            Waypoints.replace(index, current().worldHidden(!current().worldHidden()));
+            button.setMessage(world());
+        }).bounds(x, y + 56, WIDTH - REMOVE - COLUMN_GAP, HEIGHT).build());
 
-        addRenderableWidget(Button.builder(Component.translatable("gui.done"), button -> onClose())
-                .bounds(x, y + 84, WIDTH, HEIGHT).build());
+        addRenderableWidget(Button.builder(
+                Component.translatable("alphamap.waypoints.delete").withColor(DELETE), button -> {
+                    Waypoints.remove(index);
+                    onClose();
+                }).bounds(x + WIDTH - REMOVE, y + 56, REMOVE, HEIGHT).build());
+
+        Button done = Button.builder(Component.translatable("gui.done"), button -> onClose())
+                .bounds(x, y + 84, WIDTH, HEIGHT).build();
+        addRenderableWidget(done);
+        setInitialFocus(done);
+    }
+
+    private Component world() {
+        return Component.translatable(current().worldHidden()
+                ? "alphamap.waypoints.world.off"
+                : "alphamap.waypoints.world.on");
     }
 
     private Waypoint current() {
@@ -77,7 +96,7 @@ public abstract class WaypointScreenBase extends Screen {
 
     @Override
     public void onClose() {
-        Vanilla.setScreen(minecraft, null);
+        Vanilla.setScreen(minecraft, parent);
     }
 
     protected static boolean exists(int index) {

@@ -33,10 +33,14 @@ public final class WaypointOverlay {
         if (camera == null) return;
 
         int size = settings.worldMarkerPixels();
-        for (Waypoint waypoint : Waypoints.all()) {
-            place(canvas, client, camera,
-                    waypoint.x(), waypoint.y(), waypoint.z(),
-                    waypoint.name(), waypoint.colour(), null, size);
+        if (settings.worldWaypoints()) {
+            for (Waypoint waypoint : Waypoints.all()) {
+                if (waypoint.worldHidden()) continue;
+
+                place(canvas, client, camera,
+                        waypoint.x(), waypoint.y(), waypoint.z(),
+                        waypoint.name(), waypoint.colour(), null, size);
+            }
         }
 
         for (ServerMessage.Marker marker : atlas.markers()) {

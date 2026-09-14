@@ -50,6 +50,9 @@ public final class MapSettings {
     boolean worldBeds = true;
 
     @NonFinal
+    boolean worldWaypoints = true;
+
+    @NonFinal
     Set<String> worldShown;
 
     @NonFinal
@@ -306,6 +309,14 @@ public final class MapSettings {
 
     public void compass(boolean value) {
         compass = value;
+    }
+
+    public boolean worldWaypoints() {
+        return worldWaypoints;
+    }
+
+    public void worldWaypoints(boolean value) {
+        worldWaypoints = value;
     }
 
     public SelfShape selfShape() {
