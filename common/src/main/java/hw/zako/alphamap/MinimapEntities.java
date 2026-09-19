@@ -53,7 +53,7 @@ public class MinimapEntities {
         if (!settings.minimap() && !mapOpen) return;
         if (!settings.minimapPlayers() && !settings.minimapHostiles() && !settings.minimapPassives()) return;
 
-        double reach = settings.minimapBlocks();
+        double reach = settings.minimapView();
         if (mapOpen) {
             reach = Math.max(reach, client.options.getEffectiveRenderDistance() * 16.0);
         }

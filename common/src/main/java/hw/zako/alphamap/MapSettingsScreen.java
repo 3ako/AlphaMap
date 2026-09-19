@@ -77,6 +77,21 @@ public final class MapSettingsScreen extends Screen {
         });
 
         addRenderableWidget(new SettingsSlider(left, top + GAP * 3, WIDTH, HEIGHT,
+                scaleToSlider(settings.labelScale())) {
+            @Override
+            protected void updateMessage() {
+                setMessage(Component.translatable("alphamap.settings.labels.size",
+                        Math.round(sliderToScale(value) * 100) + "%"));
+            }
+
+            @Override
+            protected void applyValue() {
+                settings.labelScale(sliderToScale(value));
+                settings.clampAndSave();
+            }
+        });
+
+        addRenderableWidget(new SettingsSlider(left, top + GAP * 4, WIDTH, HEIGHT,
                 scaleToSlider(settings.markerScale())) {
             @Override
             protected void updateMessage() {
@@ -91,7 +106,7 @@ public final class MapSettingsScreen extends Screen {
             }
         });
 
-        addRenderableWidget(new SettingsSlider(left, top + GAP * 4, WIDTH, HEIGHT,
+        addRenderableWidget(new SettingsSlider(left, top + GAP * 5, WIDTH, HEIGHT,
                 scaleToSlider(settings.worldMarkerScale())) {
             @Override
             protected void updateMessage() {
@@ -108,7 +123,7 @@ public final class MapSettingsScreen extends Screen {
 
         addRenderableWidget(Button.builder(Component.translatable("alphamap.settings.waypoints"),
                         button -> Vanilla.setScreen(minecraft, new WaypointListScreen(this)))
-                .bounds(left, top + GAP * 5, WIDTH, HEIGHT)
+                .bounds(left, top + GAP * 6, WIDTH, HEIGHT)
                 .build());
 
         addRenderableWidget(Button.builder(Component.translatable("alphamap.settings.world"),
@@ -145,7 +160,7 @@ public final class MapSettingsScreen extends Screen {
         }).bounds(right, top + GAP * 5, WIDTH, HEIGHT).build());
 
         addRenderableWidget(Button.builder(Component.translatable("gui.done"), button -> onClose())
-                .bounds((width - WIDTH) / 2, top + GAP * 6, WIDTH, HEIGHT)
+                .bounds((width - WIDTH) / 2, top + GAP * 7, WIDTH, HEIGHT)
                 .build());
     }
 

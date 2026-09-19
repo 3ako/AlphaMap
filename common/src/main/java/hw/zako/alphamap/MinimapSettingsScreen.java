@@ -99,6 +99,9 @@ public final class MinimapSettingsScreen extends Screen {
         toggle(right, top + GAP, settings::compassOutside, settings::compassOutside,
                 "alphamap.minimap.compass.outside", "alphamap.minimap.compass.inside");
 
+        toggle(right, top + GAP * 2, settings::minimapCaves, settings::minimapCaves,
+                "alphamap.minimap.caves.on", "alphamap.minimap.caves.off");
+
         toggle(right, top + GAP * 3, settings::minimapWaypoints, settings::minimapWaypoints,
                 "alphamap.minimap.waypoints.on", "alphamap.minimap.waypoints.off");
 

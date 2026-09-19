@@ -5,11 +5,13 @@ import hw.zako.alphamap.protocol.ServerMessage;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
+import lombok.experimental.NonFinal;
 import net.minecraft.client.Minecraft;
 import net.minecraft.core.BlockPos;
 import net.minecraft.resources.Identifier;
 import net.minecraft.world.entity.Entity;
-import net.minecraft.world.phys.Vec3;
+import net.minecraft.util.Mth;
+import org.jetbrains.annotations.Nullable;
 
 @RequiredArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
@@ -32,10 +34,39 @@ public final class MinimapOverlay {
     private static final int OUTSIDE_GAP = 6;
     private static final int DOT = 2;
 
+    private static final long FIT_MILLIS = 250;
+    private static final int FIT_MARGIN = 12;
+    private static final double FIT_EASE_SECONDS = 0.15;
+
     AtlasClient atlas;
     MapSettings settings;
 
     MinimapImage image = new MinimapImage();
+    ChunkMap chunks = ChunkMap.INSTANCE;
+
+    @NonFinal
+    int blocks = 1;
+    @NonFinal
+    int fitted;
+    @NonFinal
+    long fittedAt;
+    @NonFinal
+    int fittedRevision;
+    @NonFinal
+    long fittedFeet;
+    @NonFinal
+    double shown;
+    @NonFinal
+    long shownAt;
+
+    @NonFinal
+    long shownX;
+    @NonFinal
+    long shownY;
+    @NonFinal
+    long shownZ;
+    @NonFinal
+    @Nullable String shownText;
 
     public int left(int width) {
         int size = settings.minimapSize();
@@ -89,12 +120,16 @@ public final class MinimapOverlay {
         float facing = (float) Math.toRadians(client.player.getViewYRot(partialTick)) + (float) Math.PI;
         float turn = settings.minimapNorth() ? 0.0f : facing;
 
-        Vec3 position = client.player.getPosition(partialTick);
-        double playerX = position.x;
-        double playerZ = position.z;
+        double playerX = Mth.lerp(partialTick, client.player.xo, client.player.getX());
+        double playerZ = Mth.lerp(partialTick, client.player.zo, client.player.getZ());
 
-        Identifier texture = image.build(atlas, geometry, playerX, playerZ,
-                size, settings.minimapBlocks(), turn, settings.minimapShape());
+        BlockPos feet = client.player.blockPosition();
+        boolean underground = settings.minimapCaves() && chunks.underground(client.level, feet);
+        chunks.follow(client.level, underground, feet.getY());
+        blocks = view(feet, underground);
+
+        Identifier texture = image.build(atlas, geometry, chunks, playerX, playerZ,
+                size, client.getWindow().getGuiScale(), blocks, turn, settings.minimapShape());
         if (texture == null) return;
 
         canvas.blit(texture, left, top, size, settings.alpha() | 0xFFFFFF);
@@ -107,15 +142,37 @@ public final class MinimapOverlay {
                     outside ? size / 2.0 + OUTSIDE_GAP : size / 2.0 - EDGE_GAP - 4,
                     turn, outside && settings.minimapShape() == MinimapShape.SQUARE);
         }
-        marks(canvas, client, playerX, playerZ, centreX, centreY, size, turn);
+        marks(canvas, client, image.centerX(), image.centerZ(), centreX, centreY, size, image.angle(), partialTick);
         arrow(canvas, centreX, centreY, settings.minimapNorth() ? facing : 0.0f);
 
         if (settings.minimapCoordinates()) coordinates(canvas, client, left, top, size, outside);
     }
 
+    private int view(BlockPos feet, boolean underground) {
+        int full = settings.minimapBlocks();
+        long now = System.currentTimeMillis();
+        if (!underground) {
+            fitted = full;
+        } else if (now - fittedAt >= FIT_MILLIS || fittedRevision != chunks.revision() || fittedFeet != feet.asLong()) {
+            fittedAt = now;
+            fittedRevision = chunks.revision();
+            fittedFeet = feet.asLong();
+            int reach = chunks.caveReach(feet.getX(), feet.getZ(), full / 2);
+            fitted = reach == 0 ? full
+                    : Math.clamp(reach * 2 + FIT_MARGIN, MapSettings.MIN_MINIMAP_BLOCKS, full);
+        }
+        int target = Math.max(MapSettings.MIN_MINIMAP_BLOCKS, fitted / settings.minimapZoom());
+
+        double seconds = shownAt == 0 ? 1.0 : (now - shownAt) / 1000.0;
+        shownAt = now;
+        shown += (target - shown) * (1 - Math.exp(-seconds / FIT_EASE_SECONDS));
+        if (Math.abs(target - shown) < 0.5) shown = target;
+        return (int) Math.round(shown);
+    }
+
     private void marks(Canvas canvas, Minecraft client, double playerX, double playerZ,
-                       float centreX, float centreY, int size, float turn) {
-        double scale = size / (double) settings.minimapBlocks();
+                       float centreX, float centreY, int size, float turn, float partialTick) {
+        double scale = size / (double) blocks;
         double cos = Math.cos(-turn);
         double sin = Math.sin(-turn);
         double limit = size / 2.0 - EDGE_GAP;
@@ -136,11 +193,9 @@ public final class MinimapOverlay {
                 double down = dx * sin + dz * cos;
 
                 double hug = hug(across, down, limit, circle);
-                int x = (int) Math.round(centreX + across * hug);
-                int y = (int) Math.round(centreY + down * hug);
-
-                canvas.blit(MarkerIcons.of(marker.icon()),
-                        x - icon / 2, y - icon / 2, icon, 0xFFFFFFFF);
+                canvas.push((float) (centreX + across * hug), (float) (centreY + down * hug), 1.0f);
+                canvas.blit(MarkerIcons.of(marker.icon()), -icon / 2, -icon / 2, icon, 0xFFFFFFFF);
+                canvas.pop();
             }
         }
 
@@ -152,8 +207,9 @@ public final class MinimapOverlay {
             double down = dx * sin + dz * cos;
             double hug = hug(across, down, limit, circle);
 
-            DeathPoint.draw(canvas, (int) Math.round(centreX + across * hug),
-                    (int) Math.round(centreY + down * hug), pin);
+            canvas.push((float) (centreX + across * hug), (float) (centreY + down * hug), 1.0f);
+            DeathPoint.draw(canvas, 0, 0, pin);
+            canvas.pop();
         }
 
         if (settings.minimapWaypoints()) {
@@ -164,9 +220,9 @@ public final class MinimapOverlay {
                 double down = dx * sin + dz * cos;
                 double hug = hug(across, down, limit, circle);
 
-                spot(canvas, (int) Math.round(centreX + across * hug),
-                        (int) Math.round(centreY + down * hug),
-                        0xFF000000 | waypoint.colour(), pin);
+                canvas.push((float) (centreX + across * hug), (float) (centreY + down * hug), 1.0f);
+                spot(canvas, 0, 0, 0xFF000000 | waypoint.colour(), pin);
+                canvas.pop();
             }
         }
 
@@ -174,23 +230,23 @@ public final class MinimapOverlay {
             Entity entity = mark.entity();
             if (entity.isRemoved()) continue;
 
-            double dx = (entity.getX() - playerX) * scale;
-            double dz = (entity.getZ() - playerZ) * scale;
+            double dx = (Mth.lerp(partialTick, entity.xo, entity.getX()) - playerX) * scale;
+            double dz = (Mth.lerp(partialTick, entity.zo, entity.getZ()) - playerZ) * scale;
             double across = dx * cos - dz * sin;
             double down = dx * sin + dz * cos;
             if (hug(across, down, limit, circle) < 1.0) continue;
 
-            int px = (int) Math.round(centreX + across);
-            int py = (int) Math.round(centreY + down);
+            canvas.push((float) (centreX + across), (float) (centreY + down), 1.0f);
             MobHeads.Head head = mark.head();
             if (head != null && mark.texture() != null) {
                 int face = Math.max(6, dot * 3);
-                canvas.blitRegion(mark.texture(), px - face / 2, py - face / 2, face, face,
+                canvas.blitRegion(mark.texture(), -face / 2, -face / 2, face, face,
                         head.u(), head.v(), head.width(), head.height(),
                         head.sheetWidth(), head.sheetHeight(), 0xFFFFFFFF);
             } else {
-                spot(canvas, px, py, colour(mark.kind()), dot);
+                spot(canvas, 0, 0, colour(mark.kind()), dot);
             }
+            canvas.pop();
         }
     }
 
@@ -229,10 +285,16 @@ public final class MinimapOverlay {
 
     private void coordinates(Canvas canvas, Minecraft client, int left, int top, int size,
                              boolean compassOutside) {
-        String text = "%d, %d, %d".formatted(
-                Math.round(client.player.getX()),
-                Math.round(client.player.getY()),
-                Math.round(client.player.getZ()));
+        long x = Math.round(client.player.getX());
+        long y = Math.round(client.player.getY());
+        long z = Math.round(client.player.getZ());
+        if (x != shownX || y != shownY || z != shownZ || shownText == null) {
+            shownX = x;
+            shownY = y;
+            shownZ = z;
+            shownText = x + ", " + y + ", " + z;
+        }
+        String text = shownText;
 
         int step = compassOutside ? 11 : 0;
         int centre = left + size / 2;

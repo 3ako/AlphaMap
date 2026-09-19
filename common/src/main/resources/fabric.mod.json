@@ -3,8 +3,11 @@
   "id": "alphamap",
   "version": "${version}",
   "name": "AlphaMap",
-  "description": "Карта острова AlphaSMP",
+  "description": "Карта острова AlphaSMP\nТГК: t.me/StarikZako",
   "authors": ["zako"],
+  "contact": {
+    "homepage": "https://t.me/StarikZako"
+  },
   "license": "MIT",
   "icon": "assets/alphamap/icon.png",
   "environment": "client",

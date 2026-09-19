@@ -28,7 +28,7 @@ public class MapProtocol {
     public byte[] request(List<Integer> indices, AtlasGeometry geometry) {
         if (indices.isEmpty() || indices.size() > MAX_TILES_PER_REQUEST) {
             throw new IllegalArgumentException(
-                    "За раз можно просить от 1 до " + MAX_TILES_PER_REQUEST + " тайлов, а не " + indices.size());
+                    "A request must ask for 1 to " + MAX_TILES_PER_REQUEST + " tiles, got " + indices.size());
         }
 
         ByteBuffer out = ByteBuffer.allocate(1 + 1 + indices.size() * 2);

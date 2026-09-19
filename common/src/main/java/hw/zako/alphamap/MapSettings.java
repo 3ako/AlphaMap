@@ -25,6 +25,7 @@ public final class MapSettings {
     public static final int MAX_MINIMAP_SIZE = 256;
     public static final int MIN_MINIMAP_BLOCKS = 32;
     public static final int MAX_MINIMAP_BLOCKS = 512;
+    public static final int MAX_MINIMAP_ZOOM = 4;
 
     private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
 
@@ -57,6 +58,9 @@ public final class MapSettings {
 
     @NonFinal
     double markerScale = 1.0;
+
+    @NonFinal
+    double labelScale = 1.0;
 
     @NonFinal
     double worldMarkerScale = 1.0;
@@ -124,10 +128,16 @@ public final class MapSettings {
     boolean minimapCoordinates = true;
 
     @NonFinal
+    boolean minimapCaves = true;
+
+    @NonFinal
     int minimapSize = 128;
 
     @NonFinal
     int minimapBlocks = 96;
+
+    @NonFinal
+    transient int minimapZoom = 1;
 
     @NonFinal
     double minimapX = 0.98;
@@ -160,6 +170,7 @@ public final class MapSettings {
         gridBlocks = Math.max(0, gridBlocks);
         labelZoom = Math.max(1.0, labelZoom);
         markerScale = Math.clamp(markerScale, MIN_SCALE, MAX_SCALE);
+        labelScale = Math.clamp(labelScale, MIN_SCALE, MAX_SCALE);
         worldMarkerScale = Math.clamp(worldMarkerScale, MIN_SCALE, MAX_SCALE);
         if (minimapShape == null) minimapShape = MinimapShape.CIRCLE;
         if (selfShape == null) selfShape = SelfShape.CROSS;
@@ -406,12 +417,32 @@ public final class MapSettings {
         minimapCoordinates = value;
     }
 
+    public boolean minimapCaves() {
+        return minimapCaves;
+    }
+
+    public void minimapCaves(boolean value) {
+        minimapCaves = value;
+    }
+
     public int minimapSize() {
         return minimapSize;
     }
 
     public void minimapSize(int value) {
         minimapSize = value;
+    }
+
+    public int minimapView() {
+        return Math.max(MIN_MINIMAP_BLOCKS, minimapBlocks / minimapZoom());
+    }
+
+    public int minimapZoom() {
+        return Math.max(1, minimapZoom);
+    }
+
+    public void zoomMinimap() {
+        minimapZoom = minimapZoom >= MAX_MINIMAP_ZOOM ? 1 : minimapZoom * 2;
     }
 
     public int minimapBlocks() {
@@ -445,6 +476,14 @@ public final class MapSettings {
 
     public double labelZoom() {
         return labelZoom;
+    }
+
+    public double labelScale() {
+        return labelScale;
+    }
+
+    public void labelScale(double value) {
+        labelScale = value;
     }
 
     public double markerScale() {

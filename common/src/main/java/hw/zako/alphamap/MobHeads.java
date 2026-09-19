@@ -1,15 +1,29 @@
 package hw.zako.alphamap;
 
+import com.mojang.blaze3d.vertex.PoseStack;
+import hw.zako.alphamap.mixin.EntityRenderDispatcherAccessor;
 import lombok.experimental.UtilityClass;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.model.geom.ModelPart;
+import net.minecraft.client.renderer.entity.EntityRenderer;
+import net.minecraft.client.renderer.entity.LivingEntityRenderer;
+import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.Identifier;
 import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.entity.MobCategory;
 import org.jetbrains.annotations.Nullable;
 
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.Map;
+import java.util.Optional;
 
 @UtilityClass
 public class MobHeads {
@@ -26,6 +40,14 @@ public class MobHeads {
     private final Map<String, String> KEYS = new LinkedHashMap<>();
     private final Map<String, String> SAMPLES = new LinkedHashMap<>();
     private final Set<String> HOSTILE = new LinkedHashSet<>();
+    private final Set<String> MONSTERS = new HashSet<>();
+
+    private final Map<String, EntityType<?>> TYPES = new HashMap<>();
+    private final Map<String, Optional<Head>> DERIVED = new HashMap<>();
+    private final int UV_SCALE = 4096;
+
+    private @Nullable Set<String> registered;
+    private @Nullable List<String> known;
 
     private void put(String id, Head head, boolean hostile) {
         String sample = SAMPLES.get(id);
@@ -126,6 +148,7 @@ public class MobHeads {
         put("chicken", new Head(3, 3, 4, 6, 64, 32, null), false);
 
         put("ghast", new Head(16, 16, 16, 16, 64, 32, null), true);
+        put("slime", new Head(8, 8, 8, 8, 64, 32, null), true);
         put("wolf", new Head(4, 4, 6, 6, 64, 32, null), false);
         put("cat", new Head(5, 5, 5, 4, 64, 32, null), false);
         put("fox", new Head(7, 11, 8, 6, 48, 32, null), false);
@@ -160,7 +183,16 @@ public class MobHeads {
     }
 
     public List<String> known() {
-        return List.copyOf(HEADS.keySet());
+        if (known == null) {
+            Set<String> ids = new LinkedHashSet<>(HEADS.keySet());
+            ids.addAll(registered());
+            List<String> sorted = new ArrayList<>(ids);
+            sorted.sort(Comparator.comparing((String id) -> !"player".equals(id))
+                    .thenComparing(id -> !hostile(id))
+                    .thenComparing(Comparator.naturalOrder()));
+            known = List.copyOf(sorted);
+        }
+        return known;
     }
 
     private void group(String key, Head head, boolean hostile, String... ids) {
@@ -176,12 +208,31 @@ public class MobHeads {
         return KEYS.containsValue(key);
     }
 
+    private Set<String> registered() {
+        if (registered == null) {
+            Set<String> ids = new LinkedHashSet<>();
+            for (EntityType<?> type : BuiltInRegistries.ENTITY_TYPE) {
+                Identifier id = EntityType.getKey(type);
+                if (!"minecraft".equals(id.getNamespace())) continue;
+                TYPES.put(id.getPath(), type);
+                if (type.getCategory() == MobCategory.MISC) continue;
+                ids.add(key(id.getPath()));
+                if (type.getCategory() == MobCategory.MONSTER) MONSTERS.add(key(id.getPath()));
+            }
+            registered = ids;
+        }
+        return registered;
+    }
+
     public boolean has(String id) {
-        return HEADS.containsKey(key(id));
+        return known().contains(key(id));
     }
 
     public boolean hostile(String id) {
-        return HOSTILE.contains(key(id));
+        String key = key(id);
+        if (HEADS.containsKey(key)) return HOSTILE.contains(key);
+        registered();
+        return MONSTERS.contains(key);
     }
 
     public @Nullable Head of(Entity entity) {
@@ -190,6 +241,68 @@ public class MobHeads {
     }
 
     public @Nullable Head of(String id) {
-        return HEADS.get(key(id));
+        String key = key(id);
+        Head head = HEADS.get(key);
+        return head != null ? head : derived(key);
+    }
+
+    private @Nullable Head derived(String id) {
+        Optional<Head> cached = DERIVED.get(id);
+        if (cached != null) return cached.orElse(null);
+
+        registered();
+        EntityType<?> type = TYPES.get(id);
+        Head head = null;
+        if (type != null) {
+            EntityRenderer<?, ?> renderer = ((EntityRenderDispatcherAccessor) Minecraft.getInstance()
+                    .getEntityRenderDispatcher()).alphamap$renderers().get(type);
+            if (renderer instanceof LivingEntityRenderer<?, ?, ?> living) head = face(living);
+        }
+        DERIVED.put(id, Optional.ofNullable(head));
+        return head;
+    }
+
+    @SuppressWarnings({"rawtypes", "unchecked"})
+    private @Nullable Head face(LivingEntityRenderer<?, ?, ?> renderer) {
+        float[][] found = new float[2][];
+        try {
+            renderer.getModel().root().visit(new PoseStack(), (pose, path, index, cube) -> {
+                if (index != 0) return;
+                float[] front = front(cube);
+                if (front == null) return;
+                if (found[1] == null) found[1] = front;
+                if (found[0] == null && path.endsWith("head")) found[0] = front;
+            });
+        } catch (RuntimeException e) {
+            return null;
+        }
+        float[] box = found[0] != null ? found[0] : found[1];
+        if (box == null) return null;
+
+        Identifier sample;
+        try {
+            sample = ((LivingEntityRenderer) renderer).getTextureLocation(renderer.createRenderState());
+        } catch (RuntimeException e) {
+            sample = null;
+        }
+        return new Head(Math.round(box[0] * UV_SCALE), Math.round(box[1] * UV_SCALE),
+                Math.max(1, Math.round((box[2] - box[0]) * UV_SCALE)),
+                Math.max(1, Math.round((box[3] - box[1]) * UV_SCALE)),
+                UV_SCALE, UV_SCALE, sample);
+    }
+
+    private float @Nullable [] front(ModelPart.Cube cube) {
+        for (ModelPart.Polygon polygon : cube.polygons) {
+            if (polygon.normal().z() > -0.9f) continue;
+            float minU = Float.MAX_VALUE, minV = Float.MAX_VALUE, maxU = -Float.MAX_VALUE, maxV = -Float.MAX_VALUE;
+            for (ModelPart.Vertex vertex : polygon.vertices()) {
+                minU = Math.min(minU, vertex.u());
+                minV = Math.min(minV, vertex.v());
+                maxU = Math.max(maxU, vertex.u());
+                maxV = Math.max(maxV, vertex.v());
+            }
+            return maxU > minU && maxV > minV ? new float[]{minU, minV, maxU, maxV} : null;
+        }
+        return null;
     }
 }

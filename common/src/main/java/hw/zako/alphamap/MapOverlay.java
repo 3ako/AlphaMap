@@ -100,6 +100,7 @@ public final class MapOverlay {
         if (settings.compass()) Compass.square(canvas, client.font, left, top, side);
         coordinates(canvas, client, geometry, settings, mapX, mapY, scale, left, top, side);
         tools(canvas, left, top);
+        gear(canvas, left, top, side);
         if (MapInput.cursorActive()) {
             act(client, geometry, settings, mapX, mapY, scale, left, top, side);
             cursor(canvas, client);
@@ -111,6 +112,10 @@ public final class MapOverlay {
         double px = MapInput.pointerX();
         double py = MapInput.pointerY();
 
+        if ((MapInput.pressed() || MapInput.usePressed()) && overGear(px, py, left, top, side)) {
+            if (MapInput.pressed()) Vanilla.setScreen(client, new MapSettingsScreen(null));
+            return;
+        }
         if ((MapInput.pressed() || MapInput.usePressed()) && overTools(px, py, left, top)) {
             if (MapInput.pressed()) pickTool(px, left, top);
             return;
@@ -173,6 +178,22 @@ public final class MapOverlay {
         return py >= top + TOOL_GAP && py <= top + TOOL_GAP + TOOL_SIZE
                 && px >= left + TOOL_GAP
                 && px <= left + TOOL_GAP + MapTool.values().length * (TOOL_SIZE + 2) + TOOL_SIZE + 2;
+    }
+
+    private static boolean overGear(double px, double py, int left, int top, int side) {
+        int x = left + side - TOOL_GAP - TOOL_SIZE;
+        int y = top + TOOL_GAP;
+        return px >= x && px <= x + TOOL_SIZE && py >= y && py <= y + TOOL_SIZE;
+    }
+
+    private static void gear(Canvas canvas, int left, int top, int side) {
+        if (!MapInput.cursorActive()) return;
+
+        int x = left + side - TOOL_GAP - TOOL_SIZE;
+        int y = top + TOOL_GAP;
+        boolean hovered = overGear(MapInput.pointerX(), MapInput.pointerY(), left, top, side);
+        canvas.fill(x, y, x + TOOL_SIZE, y + TOOL_SIZE, hovered ? 0xE0303030 : 0xB0101010);
+        glyph(canvas, "gear", x, y, hovered ? 0xFFFFFFFF : 0xB0FFFFFF);
     }
 
     private static void pickTool(double px, int left, int top) {
@@ -398,8 +419,9 @@ public final class MapOverlay {
         Component text = named
                 ? Component.literal(marker.label())
                 : Component.translatable("alphamap.marker." + marker.icon());
-        canvas.centered(client.font, text, x, y + half + 2,
-                alpha | (named ? NAMED_LABEL : LABEL));
+        canvas.push(x, y + half + 2, (float) settings.labelScale());
+        canvas.centered(client.font, text, 0, 0, alpha | (named ? NAMED_LABEL : LABEL));
+        canvas.pop();
     }
 
     private static void death(Canvas canvas, Minecraft client, AtlasGeometry geometry,

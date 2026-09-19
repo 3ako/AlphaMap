@@ -27,6 +27,9 @@ public final class AlphaMapClient implements ClientModInitializer {
     public static final KeyMapping ADD_WAYPOINT = new KeyMapping(
             "key.alphamap.waypoint", InputConstants.Type.KEYSYM, GLFW.GLFW_KEY_B, CATEGORY);
 
+    public static final KeyMapping ZOOM_MINIMAP = new KeyMapping(
+            "key.alphamap.zoom", InputConstants.Type.KEYSYM, GLFW.GLFW_KEY_Z, CATEGORY);
+
     private static final Identifier OVERLAY = Identifier.fromNamespaceAndPath("alphamap", "map");
 
     public static boolean pinned() {
@@ -76,6 +79,7 @@ public final class AlphaMapClient implements ClientModInitializer {
         Fabric.registerKey(OPEN_MAP);
         Fabric.registerKey(OPEN_SETTINGS);
         Fabric.registerKey(ADD_WAYPOINT);
+        Fabric.registerKey(ZOOM_MINIMAP);
 
         minimap = new MinimapOverlay(atlas, settings);
 
@@ -113,6 +117,10 @@ public final class AlphaMapClient implements ClientModInitializer {
 
                 while (ADD_WAYPOINT.consumeClick()) {
                     if (Vanilla.screen(client) == null && Waypoints.ready()) mark(client);
+                }
+
+                while (ZOOM_MINIMAP.consumeClick()) {
+                    if (Vanilla.screen(client) == null) settings.zoomMinimap();
                 }
 
                 boolean open = mapOpen();

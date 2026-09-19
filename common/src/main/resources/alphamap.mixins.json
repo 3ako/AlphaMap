@@ -4,6 +4,8 @@
   "package": "hw.zako.alphamap.mixin",
   "compatibilityLevel": "JAVA_${java_version}",
   "client": [
+    "ClientLevelMixin",
+    "EntityRenderDispatcherAccessor",
     "MinecraftMixin",
     "MouseHandlerMixin"
   ],
