@@ -32,6 +32,9 @@ public final class AtlasClient {
     private static final long REFRESH_INTERVAL_MILLIS = 60_000;
     private static final int ISLANDS_KEPT = 8;
 
+    private static final int MAX_PENDING_DECODES = 16;
+    private static final long TOO_FAST_BACKOFF_MILLIS = 7_000;
+
     private static final Executor OFF_THREAD =
             task -> Thread.ofVirtual().name("alphamap-io").start(task);
 
@@ -51,6 +54,12 @@ public final class AtlasClient {
 
     @NonFinal
     int unanswered;
+
+    @NonFinal
+    volatile int pendingDecodes;
+
+    @NonFinal
+    volatile long tooFastUntil;
 
     @NonFinal
     @Getter
@@ -87,6 +96,7 @@ public final class AtlasClient {
 
         long now = System.currentTimeMillis();
         if (now - helloAt < HELLO_INTERVAL_MILLIS) return;
+        if (now < tooFastUntil) return;
 
         if (!ClientPlayNetworking.canSend(MapPayload.TYPE)) {
             status = Component.translatable("alphamap.no_server");
@@ -140,6 +150,7 @@ public final class AtlasClient {
         revision++;
         markers = List.of();
         queue.clear();
+        tooFastUntil = 0;
     }
 
     private void manifest(ServerMessage.Manifest manifest) {
@@ -187,10 +198,13 @@ public final class AtlasClient {
         AtlasTextures current = atlas;
         if (current == null || !current.geometry().contains(tile.tileX(), tile.tileZ())) return;
 
+        if (pendingDecodes >= MAX_PENDING_DECODES) return;
+
         int index = current.geometry().index(tile.tileX(), tile.tileZ());
         int generation = epoch;
         long id = current.geometry().id();
 
+        pendingDecodes++;
         TileCache cache = cache();
         OFF_THREAD.execute(() -> {
             cache.write(id, tile.hash(), tile.png());
@@ -200,6 +214,9 @@ public final class AtlasClient {
     }
 
     private void unavailable(ServerMessage.Reason reason) {
+        if (reason == ServerMessage.Reason.TOO_FAST) {
+            tooFastUntil = System.currentTimeMillis() + TOO_FAST_BACKOFF_MILLIS;
+        }
         status = Component.translatable(switch (reason) {
             case NO_MAP -> "alphamap.unavailable.no_map";
             case NOT_READY -> "alphamap.unavailable.not_ready";
@@ -232,6 +249,7 @@ public final class AtlasClient {
     }
 
     private @Nullable AtlasTextures accept(int generation, @Nullable NativeImage image) {
+        if (pendingDecodes > 0) pendingDecodes--;
         AtlasTextures current = atlas;
         if (current != null && generation == epoch) return current;
 

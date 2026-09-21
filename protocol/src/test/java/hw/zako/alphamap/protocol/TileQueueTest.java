@@ -34,7 +34,7 @@ class TileQueueTest {
         for (int index : batch) {
             queue.answered(index);
         }
-        assertNotNull(queue.nextBatch(2), "пачка приехала — можно за следующей");
+        assertNotNull(queue.nextBatch(TileQueue.MIN_BATCH_INTERVAL_MILLIS), "пачка приехала — можно за следующей");
     }
 
     @Test
@@ -59,10 +59,42 @@ class TileQueueTest {
             for (int index : batch) {
                 queue.answered(index);
             }
-            now++;
+            now += TileQueue.MIN_BATCH_INTERVAL_MILLIS;
         }
         assertEquals(49, asked);
         assertTrue(asked <= 64);
+    }
+
+    @Test
+    void rateLimitsBatchesAfterAnswer() {
+        TileQueue queue = queueOf(16);
+        List<Integer> batch = queue.nextBatch(0);
+        assertNotNull(batch);
+
+        for (int index : batch) {
+            queue.answered(index);
+        }
+
+        assertNull(queue.nextBatch(TileQueue.MIN_BATCH_INTERVAL_MILLIS - 1),
+                "сразу после ответа MIN_BATCH_INTERVAL не должен пропустить новый батч");
+        assertNotNull(queue.nextBatch(TileQueue.MIN_BATCH_INTERVAL_MILLIS),
+                "после MIN_BATCH_INTERVAL новый батч уходит");
+    }
+
+    @Test
+    void batchTimeoutOverridesMinBatchInterval() {
+        TileQueue queue = queueOf(16);
+        queue.nextBatch(0);
+
+        assertNotNull(queue.nextBatch(TileQueue.BATCH_TIMEOUT_MILLIS),
+                "даже если MIN_BATCH_INTERVAL ещё не прошёл, BATCH_TIMEOUT разрешает перепослать");
+    }
+
+    @Test
+    void coldAtlasSendsFirstBatchImmediately() {
+        TileQueue queue = queueOf(49);
+        assertNotNull(queue.nextBatch(0),
+                "первый батч на холодной очереди уходит сразу, без ожидания MIN_BATCH_INTERVAL");
     }
 
     @Test

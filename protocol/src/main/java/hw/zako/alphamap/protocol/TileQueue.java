@@ -13,13 +13,14 @@ import java.util.Set;
 public final class TileQueue {
 
     public static final long BATCH_TIMEOUT_MILLIS = 3_000;
+    public static final long MIN_BATCH_INTERVAL_MILLIS = 150;
 
     Set<Integer> missing = new LinkedHashSet<>();
 
     @NonFinal
     int outstanding;
     @NonFinal
-    long batchAt;
+    long batchAt = -MIN_BATCH_INTERVAL_MILLIS;
 
     public void need(int index) {
         missing.add(index);
@@ -41,11 +42,12 @@ public final class TileQueue {
     public void clear() {
         missing.clear();
         outstanding = 0;
-        batchAt = 0;
+        batchAt = -MIN_BATCH_INTERVAL_MILLIS;
     }
 
     public @Nullable List<Integer> nextBatch(long now) {
         if (missing.isEmpty()) return null;
+        if (now - batchAt < MIN_BATCH_INTERVAL_MILLIS) return null;
         if (outstanding > 0 && now - batchAt < BATCH_TIMEOUT_MILLIS) return null;
 
         List<Integer> batch = missing.stream().limit(MapProtocol.MAX_TILES_PER_REQUEST).toList();
